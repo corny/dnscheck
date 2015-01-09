@@ -1,33 +1,57 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/miekg/dns"
-	"log"
+	//"log"
 	"net"
 )
 
-func check(server string) (state string, result string) {
-	domain := "wikileaks.org"
+var domains = []string{
+	"example.com",
+	"wikileaks.org",
+	"non-existent.example.com",
+}
+
+func resolve(nameserver string, domain string) (records stringSet, err error) {
+	fmt.Printf("%i\n", len(domains))
+
 	c := &dns.Client{}
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
-	r, _, err := c.Exchange(m, net.JoinHostPort(server, "53"))
+	r, _, err := c.Exchange(m, net.JoinHostPort(nameserver, "53"))
 	if r == nil {
-		log.Fatalf("*** error: %s\n", err.Error())
+		return nil, err
 	}
 
+	// NXDomain?
+	if r.Rcode == dns.RcodeNameError {
+		return nil, nil
+	}
+
+	records = make(stringSet)
+
+	// Other non-success rcode?
 	if r.Rcode != dns.RcodeSuccess {
-		log.Fatalf(" *** invalid answer from %s for %s\n", server, domain)
+		return nil, errors.New(fmt.Sprintf("RCODE %i for %s", r.Rcode, domain))
 	}
 
-	// Stuff must be in the answer section
 	for _, a := range r.Answer {
-		result = fmt.Sprintf("%v\n", a)
+		if record, ok := a.(*dns.A); ok {
+			records.Add(record.A.String())
+		}
 	}
 
-	state = "valid"
-	return
+	return records, nil
+}
+
+func check(job *job) *result {
+	result := &result{id: job.id}
+
+	result.err = ""
+	result.state = "valid"
+	return result
 }

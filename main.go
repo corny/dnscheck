@@ -7,17 +7,6 @@ import (
 	//"time"
 )
 
-type job struct {
-	id      int
-	address string
-}
-
-type result struct {
-	id    int
-	state string
-	err   string
-}
-
 const workersLimit = 10
 const connection = "root:@tcp(localhost:3306)/nameservers_development"
 
@@ -79,11 +68,10 @@ func createJobs() {
 
 func worker() {
 	for {
-		j := <-jobs
-		if j != nil {
-			log.Println("received job", j.id)
-			state, err := check(j.address)
-			results <- &result{id: j.id, state: state, err: err}
+		job := <-jobs
+		if job != nil {
+			log.Println("received job", job.id)
+			results <- check(job)
 		} else {
 			log.Println("received all jobs")
 			results <- nil
@@ -100,17 +88,19 @@ func resultWriter() {
 	}
 	defer db.Close()
 
-	stm, err := db.Prepare("UPDATE nameservers SET state=?, error=? WHERE id=?")
+	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=? WHERE id=?")
 	defer stm.Close()
 
 	doneCount := 0
 	for doneCount < workersLimit {
 		res := <-results
+		log.Println("finished job", res.id)
 		if res == nil {
 			doneCount++
 			log.Println("worker terminated")
 		} else {
-			stm.Exec(res.state, res.err, res.id)
+			log.Printf("job id=%i state=%s name=%s err=%s", res.id, res.state, res.name, res.err)
+			stm.Exec(res.name, res.state, res.err, res.id)
 		}
 	}
 	done <- true
