@@ -2,29 +2,27 @@ package main
 
 import "testing"
 
-func TestCompare(t *testing.T) {
-  result, err := resolve("8.8.8.8", "example.com")
+func TestCheckResult(t *testing.T) {
+	correctAddr := make(stringSet)
+	correctAddr.add("1.2.3.4")
+	correctMap := make(resultMap)
+	correctMap["example.com"] = correctAddr
 
-func TestExistent(t *testing.T) {
-	result, err := resolve("8.8.8.8", "example.com")
+	incorrectAddr := make(stringSet)
+	incorrectAddr.add("23.0.0.1")
+	incorrectAddr.add("23.0.0.2")
+	incorrectMap := make(resultMap)
+	incorrectMap["example.com"] = incorrectAddr
 
+	// compare correct with correct
+	err := checkResult(correctMap, correctMap)
 	if err != nil {
-		t.Fatal("an error occured")
+		t.Fatal(err)
 	}
 
-	if len(result) != 1 {
-		t.Fatal("invalid number of records returned:", len(result))
-	}
-}
-
-func TestNotExistent(t *testing.T) {
-	result, err := resolve("8.8.8.8", "xxx.example.com")
-
-	if err != nil {
-		t.Fatal("an error occured")
-	}
-
-	if len(result) > 0 {
-		t.Fatal("records returned")
+	// compare correct with invalid
+	err = checkResult(correctMap, incorrectMap)
+	if err.Error() != "Unexpected result for example.com: 23.0.0.1, 23.0.0.2" {
+		t.Fatal(err)
 	}
 }

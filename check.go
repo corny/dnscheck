@@ -1,57 +1,37 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"github.com/miekg/dns"
-	//"log"
-	"net"
 )
 
+// domains to check
 var domains = []string{
 	"example.com",
 	"wikileaks.org",
 	"non-existent.example.com",
 }
 
-func resolve(nameserver string, domain string) (records stringSet, err error) {
-	fmt.Printf("%i\n", len(domains))
+var expectedResults resultMap
 
-	c := &dns.Client{}
-	m := &dns.Msg{}
-	m.RecursionDesired = true
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+// Compare the result with the expectations
+func checkResult(expectedMap resultMap, solvedMap resultMap) error {
 
-	r, _, err := c.Exchange(m, net.JoinHostPort(nameserver, "53"))
-	if r == nil {
-		return nil, err
-	}
-
-	// NXDomain?
-	if r.Rcode == dns.RcodeNameError {
-		return nil, nil
-	}
-
-	records = make(stringSet)
-
-	// Other non-success rcode?
-	if r.Rcode != dns.RcodeSuccess {
-		return nil, errors.New(fmt.Sprintf("RCODE %i for %s", r.Rcode, domain))
-	}
-
-	for _, a := range r.Answer {
-		if record, ok := a.(*dns.A); ok {
-			records.Add(record.A.String())
+	for domain, expected := range expectedMap {
+		result := solvedMap[domain]
+		if !expected.equals(result) {
+			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
 		}
 	}
 
-	return records, nil
+	return nil
 }
 
-func check(job *job) *result {
-	result := &result{id: job.id}
+func check(job *job) error {
+	solved, err := resolveDomains(job.address)
 
-	result.err = ""
-	result.state = "valid"
-	return result
+	if err != nil {
+		return err
+	}
+
+	return checkResult(expectedResults, solved)
 }

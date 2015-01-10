@@ -7,13 +7,7 @@ type job struct {
 
 type stringSet map[string]struct{}
 
-func (set stringSet) Add(str string) {
-	set[str] = struct{}{}
-}
-
-func (set stringSet) equals() bool {
-	return false
-}
+type resultMap map[string]stringSet
 
 type result struct {
 	id    int
