@@ -10,8 +10,8 @@ import (
 const connection = "root:@tcp(localhost:3306)/nameservers_development"
 const referenceNameserver = "8.8.8.8"
 
-var jobs = make(chan *job, 100)
-var results = make(chan *result, 100)
+var pending = make(chan *job, 100)
+var finished = make(chan *job, 100)
 var done = make(chan bool)
 var workersLimit = 1
 
@@ -67,7 +67,7 @@ func createJobs() {
 			if err != nil {
 				panic(err)
 			}
-			jobs <- j
+			pending <- j
 			currentId = j.id
 			found += 1
 		}
@@ -75,7 +75,7 @@ func createJobs() {
 
 		// Last batch?
 		if found < batchSize {
-			close(jobs)
+			close(pending)
 			return
 		}
 	}
@@ -83,24 +83,24 @@ func createJobs() {
 
 func worker() {
 	for {
-		job := <-jobs
+		job := <-pending
 		if job != nil {
 			// log.Println("received job", job.id)
 			err := check(job)
-			result := &result{id: job.id, name: ptrName(job.address)}
+			job.name = ptrName(job.address)
 
 			if err == nil {
-				result.state = "valid"
-				result.err = ""
+				job.state = "valid"
+				job.err = ""
 			} else {
-				result.state = "invalid"
-				result.err = err.Error()
+				job.state = "invalid"
+				job.err = err.Error()
 			}
-			results <- result
+			finished <- job
 
 		} else {
 			log.Println("received all jobs")
-			results <- nil
+			finished <- nil
 			return
 		}
 	}
@@ -114,19 +114,19 @@ func resultWriter() {
 	}
 	defer db.Close()
 
-	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, checked_at=NOW() WHERE id=?")
+	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, checked_at=NOW(), state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END ) WHERE id=?")
 	defer stm.Close()
 
 	doneCount := 0
 	for doneCount < workersLimit {
-		res := <-results
+		res := <-finished
 		// log.Println("finished job", res.id)
 		if res == nil {
 			doneCount++
 			log.Println("worker terminated")
 		} else {
 			log.Printf("job id=%v state=%s name=%s err=%s", res.id, res.state, res.name, res.err)
-			stm.Exec(res.name, res.state, res.err, res.id)
+			stm.Exec(res.name, res.state, res.err, res.state, res.id)
 		}
 	}
 	done <- true
