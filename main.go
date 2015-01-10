@@ -88,6 +88,7 @@ func worker() {
 			// log.Println("received job", job.id)
 			err := check(job)
 			job.name = ptrName(job.address)
+			job.version = version(job.address)
 
 			if err == nil {
 				job.state = "valid"
@@ -114,7 +115,10 @@ func resultWriter() {
 	}
 	defer db.Close()
 
-	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, checked_at=NOW(), state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END ) WHERE id=?")
+	stm, err := db.Prepare(
+		"UPDATE nameservers SET name=?, state=?, error=?, version=?, checked_at=NOW()," +
+			"state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END )" +
+			"WHERE id=?")
 	defer stm.Close()
 
 	doneCount := 0
@@ -126,7 +130,7 @@ func resultWriter() {
 			log.Println("worker terminated")
 		} else {
 			log.Printf("job id=%v state=%s name=%s err=%s", res.id, res.state, res.name, res.err)
-			stm.Exec(res.name, res.state, res.err, res.state, res.id)
+			stm.Exec(res.name, res.state, res.err, res.version, res.state, res.id)
 		}
 	}
 	done <- true

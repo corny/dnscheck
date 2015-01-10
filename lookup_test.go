@@ -44,3 +44,11 @@ func TestPtrName(t *testing.T) {
 		t.Fatal("invalid result:", result)
 	}
 }
+
+func TestVersion(t *testing.T) {
+	result := version("208.79.56.204")
+
+	if result != "Go Away" {
+		t.Fatal("invalid result:", result)
+	}
+}

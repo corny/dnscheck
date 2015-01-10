@@ -4,6 +4,7 @@ type job struct {
 	id      int
 	address string
 	name    string
+	version string
 	state   string
 	err     string
 }

@@ -70,12 +70,7 @@ func ptrName(address string) string {
 
 	// execute the query
 	r, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceNameserver, "53"))
-	if r == nil {
-		return ""
-	}
-
-	// Other erroneous rcode?
-	if r.Rcode != dns.RcodeSuccess {
+	if r == nil || r.Rcode != dns.RcodeSuccess {
 		return ""
 	}
 
@@ -83,6 +78,28 @@ func ptrName(address string) string {
 	for _, a := range r.Answer {
 		if record, ok := a.(*dns.PTR); ok {
 			return record.Ptr
+		}
+	}
+	return ""
+}
+
+// Query a nameserver for the bind version
+func version(address string) string {
+	m := &dns.Msg{}
+	m.RecursionDesired = true
+	m.Question = make([]dns.Question, 1)
+	m.Question[0] = dns.Question{"version.bind.", dns.TypeTXT, dns.ClassCHAOS}
+
+	// execute the query
+	r, _, _ := dnsClient.Exchange(m, net.JoinHostPort(address, "53"))
+	if r == nil || r.Rcode != dns.RcodeSuccess {
+		return ""
+	}
+
+	// Add addresses to set
+	for _, a := range r.Answer {
+		if record, ok := a.(*dns.TXT); ok {
+			return record.Txt[0]
 		}
 	}
 	return ""
