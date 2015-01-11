@@ -7,6 +7,8 @@ type job struct {
 	version string
 	state   string
 	err     string
+	country string
+	city    string
 }
 
 type stringSet map[string]struct{}

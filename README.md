@@ -11,6 +11,8 @@ It is written in [Go](http://golang.org/) and it scales very well.
 * [Go-MySQL-Driver](https://github.com/go-sql-driver/mysql)
 * [Go-YAML v2](https://gopkg.in/yaml.v2)
 * [DNS library by Miek Gieben](https://github.com/miekg/dns)
+* [MaxMind DB Reader for Go](https://github.com/oschwald/maxminddb-golang)
+* GeoLite2 by MaxMind, available from http://www.maxmind.com
 * A MySQL database
 
 ## Configuration
@@ -74,4 +76,4 @@ All of the domains should resolve to the same IP addresses (not location based /
 
 Replace `env` with your environment name (e.g. development or production) and pass the path to your database.yml
 
-    RAILS_ENV=env dnscheck path/to/domains path/to/database.yml
+    RAILS_ENV=env dnscheck path/to/domains path/to/database.yml path/to/GeoLite2-City.mmdb

@@ -26,8 +26,8 @@ var (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage:", os.Args[0], "path/to/domains path/to/rails/config/database.yml")
+	if len(os.Args) != 4 {
+		fmt.Println("Usage:", os.Args[0], "path/to/domains path/to/rails/config/database.yml path/to/GeoLite2-City.mmdb")
 		os.Exit(1)
 	}
 
@@ -45,6 +45,9 @@ func main() {
 
 	// load database configuration
 	connection = databasePath(os.Args[2], environment)
+
+	// load path to GeoDB
+	geoDbPath = os.Args[3]
 
 	// Use all cores
 	cpus := runtime.NumCPU()
@@ -135,7 +138,7 @@ func resultWriter() {
 	defer db.Close()
 
 	stm, err := db.Prepare(
-		"UPDATE nameservers SET name=?, state=?, error=?, version=?, checked_at=NOW()," +
+		"UPDATE nameservers SET name=?, state=?, error=?, version=?, checked_at=NOW(), country_id=?, city=?," +
 			"state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END )" +
 			"WHERE id=?")
 	defer stm.Close()
@@ -148,8 +151,8 @@ func resultWriter() {
 			doneCount++
 			log.Println("worker terminated")
 		} else {
-			log.Printf("job id=%v state=%s name=%s err=%s", res.id, res.state, res.name, res.err)
-			stm.Exec(res.name, res.state, res.err, res.version, res.state, res.id)
+			log.Println(res)
+			stm.Exec(res.name, res.state, res.err, res.version, res.country, res.city, res.state, res.id)
 		}
 	}
 	done <- true
@@ -158,6 +161,11 @@ func resultWriter() {
 // consumes a job and writes the result in the given job
 func executeJob(job *job) {
 	// log.Println("received job", job.id)
+
+	// GeoDB lookup
+	job.country, job.city = location(job.address)
+
+	// Run the check
 	err := check(job)
 	job.name = ptrName(job.address)
 
