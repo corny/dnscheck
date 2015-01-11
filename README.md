@@ -1,0 +1,65 @@
+DNS Check
+=========
+
+This code powers the DNS check of the [Public DNS list](http://public-dns.tk) service.
+It is written in [Go](http://golang.org/) and it scales very well.
+
+## Dependencies
+
+* [Go-MySQL-Driver](https://github.com/go-sql-driver/mysql)
+* [Go-YAML v2](https://gopkg.in/yaml.v2)
+* [DNS library by Miek Gieben](https://github.com/miekg/dns)
+* A MySQL database
+
+## Configuration
+
+### Database configuration
+
+The program is intended to be part of a Rails application.
+So you need a `database.yml` with the credentials for your database.
+
+#### Using a socket
+
+    development:
+      socket: /var/run/mysqld/mysqld.sock
+      database: nameservers_development
+      username: root
+      password:
+
+#### Using a tcp connection
+
+    production:
+      host: 127.0.0.1
+      database: nameservers
+      username: nameservers
+      password: topsecret
+
+### Database scheme
+
+Create a database with the following table:
+
+    CREATE TABLE `nameservers` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `ip` varchar(255) NOT NULL,
+      `name` varchar(255) DEFAULT NULL,
+      `state` varchar(255) NOT NULL DEFAULT 'new',
+      `state_changed_at` datetime DEFAULT NULL,
+      `error` varchar(255) DEFAULT NULL,
+      `country_id` char(2) DEFAULT NULL,
+      `city` varchar(255) DEFAULT NULL,
+      `checked_at` datetime DEFAULT NULL,
+      `created_at` datetime NOT NULL,
+      `updated_at` datetime NOT NULL,
+      `version` varchar(255) DEFAULT NULL,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `index_nameservers_on_ip` (`ip`),
+      KEY `index_nameservers_on_state` (`state`),
+      KEY `country_state_checked` (`country_id`,`state`,`checked_at`),
+      KEY `index_nameservers_on_version` (`version`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+
+## Usage
+
+Replace `env` with your environment name (e.g. development or production) and pass the path to your database.yml
+
+    RAILS_ENV=env dnscheck path/to/database.yml
