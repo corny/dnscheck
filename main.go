@@ -9,17 +9,21 @@ import (
 	"runtime"
 )
 
-// The nameserver that every other is compared with
-const referenceNameserver = "8.8.8.8"
+const (
+	// The nameserver that every other is compared with
+	referenceNameserver = "8.8.8.8"
 
-// Timeout for DNS queries
-const timeout = 3 * 1e9
+	// Timeout for DNS queries
+	timeout = 3 * 1e9
+)
 
-var pending = make(chan *job, 100)
-var finished = make(chan *job, 100)
-var done = make(chan bool)
-var workersLimit = 1
-var connection string
+var (
+	pending      = make(chan *job, 100)
+	finished     = make(chan *job, 100)
+	done         = make(chan bool)
+	workersLimit = 1
+	connection   string
+)
 
 func main() {
 	if len(os.Args) != 2 {
