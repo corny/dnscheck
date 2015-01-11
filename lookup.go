@@ -6,6 +6,9 @@ import (
 	"net"
 )
 
+// maximum number of attempts for a query
+const maxAttempts = 3
+
 var dnsClient = &dns.Client{}
 
 // Query the given nameserver for all domains
@@ -29,27 +32,41 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
+	attempt := 1
+	result := &dns.Msg{}
+
 	// execute the query
-	r, _, err := dnsClient.Exchange(m, net.JoinHostPort(nameserver, "53"))
-	if r == nil {
-		// network problem or timeout
-		return nil, simplifyError(err)
+	for {
+		result, _, err = dnsClient.Exchange(m, net.JoinHostPort(nameserver, "53"))
+		if err == nil {
+			// success
+			break
+		} else {
+			err = simplifyError(err)
+			if err.Error() != "i/o timeout" || attempt == maxAttempts {
+				// network problem or timeout
+				return nil, simplifyError(err)
+			} else {
+				// retry
+				attempt++
+			}
+		}
 	}
 
 	// NXDomain rcode?
-	if r.Rcode == dns.RcodeNameError {
+	if result.Rcode == dns.RcodeNameError {
 		return nil, nil
 	}
 
 	// Other erroneous rcode?
-	if r.Rcode != dns.RcodeSuccess {
-		return nil, fmt.Errorf("%v for %s", dns.RcodeToString[r.Rcode], domain)
+	if result.Rcode != dns.RcodeSuccess {
+		return nil, fmt.Errorf("%v for %s", dns.RcodeToString[result.Rcode], domain)
 	}
 
 	records = make(stringSet)
 
 	// Add addresses to set
-	for _, a := range r.Answer {
+	for _, a := range result.Answer {
 		if record, ok := a.(*dns.A); ok {
 			records.add(record.A.String())
 		}
@@ -69,13 +86,13 @@ func ptrName(address string) string {
 	m.SetQuestion(reverse, dns.TypePTR)
 
 	// execute the query
-	r, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceNameserver, "53"))
-	if r == nil || r.Rcode != dns.RcodeSuccess {
+	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceNameserver, "53"))
+	if result == nil || result.Rcode != dns.RcodeSuccess {
 		return ""
 	}
 
 	// Add addresses to set
-	for _, a := range r.Answer {
+	for _, a := range result.Answer {
 		if record, ok := a.(*dns.PTR); ok {
 			return record.Ptr
 		}

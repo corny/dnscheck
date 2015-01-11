@@ -12,3 +12,5 @@ type job struct {
 type stringSet map[string]struct{}
 
 type resultMap map[string]stringSet
+
+type config map[string]map[string]string

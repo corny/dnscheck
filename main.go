@@ -2,20 +2,41 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"os"
 	"runtime"
 )
 
-const connection = "root:@tcp(localhost:3306)/nameservers_development"
+// The nameserver that every other is compared with
 const referenceNameserver = "8.8.8.8"
+
+// Timeout for DNS queries
+const timeout = 3 * 1e9
 
 var pending = make(chan *job, 100)
 var finished = make(chan *job, 100)
 var done = make(chan bool)
 var workersLimit = 1
+var connection string
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Usage:", os.Args[0], "path/to/rails/config/database.yml")
+		os.Exit(1)
+	}
+
+	dnsClient.ReadTimeout = timeout
+
+	environment := os.Getenv("RAILS_ENV")
+	if environment == "" {
+		environment = "development"
+	}
+
+	// load database configuration
+	connection = databasePath(os.Args[1], environment)
+
 	// Use all cores
 	cpus := runtime.NumCPU()
 	runtime.GOMAXPROCS(cpus)
@@ -30,6 +51,7 @@ func main() {
 
 	go resultWriter()
 
+	// Start workers
 	for i := 0; i < workersLimit; i++ {
 		go worker()
 	}
@@ -85,20 +107,8 @@ func worker() {
 	for {
 		job := <-pending
 		if job != nil {
-			// log.Println("received job", job.id)
-			err := check(job)
-			job.name = ptrName(job.address)
-			job.version = version(job.address)
-
-			if err == nil {
-				job.state = "valid"
-				job.err = ""
-			} else {
-				job.state = "invalid"
-				job.err = err.Error()
-			}
+			executeJob(job)
 			finished <- job
-
 		} else {
 			log.Println("received all jobs")
 			finished <- nil
@@ -134,4 +144,24 @@ func resultWriter() {
 		}
 	}
 	done <- true
+}
+
+// consumes a job and writes the result in the given job
+func executeJob(job *job) {
+	// log.Println("received job", job.id)
+	err := check(job)
+	job.name = ptrName(job.address)
+
+	// query the bind version
+	if err == nil || err.Error() != "i/o timeout" {
+		job.version = version(job.address)
+	}
+
+	if err == nil {
+		job.state = "valid"
+		job.err = ""
+	} else {
+		job.state = "invalid"
+		job.err = err.Error()
+	}
 }
