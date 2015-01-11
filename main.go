@@ -26,8 +26,8 @@ var (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage:", os.Args[0], "path/to/rails/config/database.yml")
+	if len(os.Args) != 3 {
+		fmt.Println("Usage:", os.Args[0], "path/to/domains path/to/rails/config/database.yml")
 		os.Exit(1)
 	}
 
@@ -38,8 +38,13 @@ func main() {
 		environment = "development"
 	}
 
+	if err := readDomains(os.Args[1]); err != nil {
+		fmt.Println("unable to read domain list")
+		panic(err)
+	}
+
 	// load database configuration
-	connection = databasePath(os.Args[1], environment)
+	connection = databasePath(os.Args[2], environment)
 
 	// Use all cores
 	cpus := runtime.NumCPU()

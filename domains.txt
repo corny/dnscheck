@@ -1,0 +1,6 @@
+# a comment
+
+example.com
+non-existent.example.com
+wikileaks.org
+rotten.com

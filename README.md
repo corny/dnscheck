@@ -60,8 +60,18 @@ Create a database with the following table:
       KEY `index_nameservers_on_version` (`version`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8
 
+## Domain list
+
+Create a list of domains to query the nameservers for.
+You should include at least one domain that does not exist.
+All of the domains should resolve to the same IP addresses (not location based / GeoIP).
+
+    non-existent.example.com
+    wikileaks.org
+    rotten.com
+
 ## Usage
 
 Replace `env` with your environment name (e.g. development or production) and pass the path to your database.yml
 
-    RAILS_ENV=env dnscheck path/to/database.yml
+    RAILS_ENV=env dnscheck path/to/domains path/to/database.yml

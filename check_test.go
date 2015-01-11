@@ -26,3 +26,14 @@ func TestCheckResult(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestReadDomains(t *testing.T) {
+	err := readDomains("domains.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(domains) != 4 {
+		t.Fatal("unexpected domain list:", domains)
+	}
+}
