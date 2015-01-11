@@ -1,6 +1,8 @@
 DNS Check
 =========
 
+[![Build Status](https://travis-ci.org/corny/dnscheck.svg?branch=master)](https://travis-ci.org/corny/dnscheck)
+
 This code powers the DNS check of the [Public DNS list](http://public-dns.tk) service.
 It is written in [Go](http://golang.org/) and it scales very well.
 
