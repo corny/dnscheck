@@ -29,6 +29,25 @@ func TestCheckResult(t *testing.T) {
 	}
 }
 
+func TestCheckResultEmpty(t *testing.T) {
+	domains = []string{"example.com"}
+
+	correctAddr := make(stringSet)
+	correctAddr.add("1.2.3.4")
+	correctMap := make(resultMap)
+	correctMap["example.com"] = correctAddr
+
+	incorrectAddr := make(stringSet)
+	incorrectMap := make(resultMap)
+	incorrectMap["example.com"] = incorrectAddr
+
+	// compare correct with invalid
+	err := checkResult(correctMap, incorrectMap)
+	if err.Error() != "Unexpected result for example.com: NXDOMAIN" {
+		t.Fatal(err)
+	}
+}
+
 func TestReadDomains(t *testing.T) {
 	err := readDomains("domains.txt")
 	if err != nil {

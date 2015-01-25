@@ -45,7 +45,12 @@ func checkResult(expectedMap resultMap, solvedMap resultMap) error {
 		expected := expectedMap[domain]
 		result := solvedMap[domain]
 		if !expected.equals(result) {
-			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
+			if len(result) == 0 {
+				// empty result means NXDOMAIN
+				return fmt.Errorf("Unexpected result for %s: NXDOMAIN", domain)
+			} else {
+				return fmt.Errorf("Unexpected result for %s: %v", domain, result)
+			}
 		}
 	}
 
