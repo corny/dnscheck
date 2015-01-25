@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestExistent(t *testing.T) {
-	result, err := resolve(referenceNameserver, "example.com")
+	result, err := resolve(referenceServer, "example.com")
 
 	if err != nil {
 		t.Fatal("an error occured")
@@ -15,7 +15,7 @@ func TestExistent(t *testing.T) {
 }
 
 func TestNotExistent(t *testing.T) {
-	result, err := resolve(referenceNameserver, "xxx.example.com")
+	result, err := resolve(referenceServer, "xxx.example.com")
 
 	if err != nil {
 		t.Fatal("an error occured")

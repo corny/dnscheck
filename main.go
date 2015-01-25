@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
@@ -10,26 +11,27 @@ import (
 )
 
 const (
-	// The nameserver that every other is compared with
-	referenceNameserver = "8.8.8.8"
-
 	// Timeout for DNS queries
 	timeout = 3 * 1e9
 )
 
 var (
-	pending      = make(chan *job, 100)
-	finished     = make(chan *job, 100)
-	done         = make(chan bool)
-	workersLimit = 1
-	connection   string
+	pending         = make(chan *job, 100)
+	finished        = make(chan *job, 100)
+	done            = make(chan bool)
+	workersCount    = 1
+	referenceServer = "8.8.8.8"
+	connection      string
+	domainArg       string
 )
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Println("Usage:", os.Args[0], "path/to/domains path/to/rails/config/database.yml path/to/GeoLite2-City.mmdb")
-		os.Exit(1)
-	}
+	databaseArg := flag.String("database", "database.yml", "Path to file containing the database configuration")
+	flag.StringVar(&domainArg, "domains", "domains.txt", "Path to file containing the domain list")
+	flag.StringVar(&geoDbPath, "geodb", "GeoLite2-City.mmdb", "Path to GeoDB database")
+	flag.StringVar(&referenceServer, "reference", referenceServer, "The nameserver that every other is compared with")
+	workersPerCore := flag.Int("workers-per-core", 8, "Number of worker routines per CPU core")
+	flag.Parse()
 
 	dnsClient.ReadTimeout = timeout
 
@@ -38,33 +40,36 @@ func main() {
 		environment = "development"
 	}
 
-	if err := readDomains(os.Args[1]); err != nil {
+	// read domain list
+	if err := readDomains(domainArg); err != nil {
 		fmt.Println("unable to read domain list")
 		panic(err)
 	}
 
 	// load database configuration
-	connection = databasePath(os.Args[2], environment)
+	connection = databasePath(*databaseArg, environment)
 
-	// load path to GeoDB
-	geoDbPath = os.Args[3]
+	// check the GeoDB
+	location(referenceServer)
 
 	// Use all cores
-	cpus := runtime.NumCPU()
-	runtime.GOMAXPROCS(cpus)
-	workersLimit = 8 * cpus
+	cpuCount := runtime.NumCPU()
+	runtime.GOMAXPROCS(cpuCount)
+	workersCount = *workersPerCore * cpuCount
+	fmt.Println("Starting", workersCount, "workers")
 
 	// Get results from the reference nameserver
-	res, err := resolveDomains(referenceNameserver)
+	res, err := resolveDomains(referenceServer)
 	if err != nil {
 		panic(err)
 	}
 	expectedResults = res
 
+	// Start result writer
 	go resultWriter()
 
 	// Start workers
-	for i := 0; i < workersLimit; i++ {
+	for i := 0; i < workersCount; i++ {
 		go worker()
 	}
 
@@ -144,7 +149,7 @@ func resultWriter() {
 	defer stm.Close()
 
 	doneCount := 0
-	for doneCount < workersLimit {
+	for doneCount < workersCount {
 		res := <-finished
 		// log.Println("finished job", res.id)
 		if res == nil {

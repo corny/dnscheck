@@ -86,7 +86,7 @@ func ptrName(address string) string {
 	m.SetQuestion(reverse, dns.TypePTR)
 
 	// execute the query
-	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceNameserver, "53"))
+	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceServer, "53"))
 	if result == nil || result.Rcode != dns.RcodeSuccess {
 		return ""
 	}
