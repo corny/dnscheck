@@ -3,6 +3,8 @@ package main
 import "testing"
 
 func TestCheckResult(t *testing.T) {
+	domains = []string{"example.com"}
+
 	correctAddr := make(stringSet)
 	correctAddr.add("1.2.3.4")
 	correctMap := make(resultMap)

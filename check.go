@@ -21,6 +21,9 @@ func readDomains(path string) error {
 	}
 	defer file.Close()
 
+	// create empty array
+	domains = []string{}
+
 	// Read lines
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -38,7 +41,8 @@ func readDomains(path string) error {
 // Compare the result with the expectations
 func checkResult(expectedMap resultMap, solvedMap resultMap) error {
 
-	for domain, expected := range expectedMap {
+	for _, domain := range domains {
+		expected := expectedMap[domain]
 		result := solvedMap[domain]
 		if !expected.equals(result) {
 			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
