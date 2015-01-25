@@ -13,6 +13,9 @@ import (
 const (
 	// Timeout for DNS queries
 	timeout = 3 * 1e9
+
+	// maximum number of attempts for a query
+	maxAttempts = 3
 )
 
 var (

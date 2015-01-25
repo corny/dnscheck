@@ -6,9 +6,6 @@ import (
 	"net"
 )
 
-// maximum number of attempts for a query
-const maxAttempts = 3
-
 var dnsClient = &dns.Client{}
 
 // Query the given nameserver for all domains
