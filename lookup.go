@@ -105,16 +105,15 @@ func version(address string) string {
 	m.Question = make([]dns.Question, 1)
 	m.Question[0] = dns.Question{"version.bind.", dns.TypeTXT, dns.ClassCHAOS}
 
-	// execute the query
+	// Execute the query
 	r, _, _ := dnsClient.Exchange(m, net.JoinHostPort(address, "53"))
-	if r == nil || r.Rcode != dns.RcodeSuccess {
-		return ""
-	}
 
-	// Add addresses to set
-	for _, a := range r.Answer {
-		if record, ok := a.(*dns.TXT); ok {
-			return record.Txt[0]
+	// Valid response?
+	if r != nil && r.Rcode == dns.RcodeSuccess {
+		for _, a := range r.Answer {
+			if record, ok := a.(*dns.TXT); ok {
+				return record.Txt[0]
+			}
 		}
 	}
 	return ""
