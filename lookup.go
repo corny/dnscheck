@@ -29,12 +29,13 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 
+	hostPort := net.JoinHostPort(nameserver, "53")
 	attempt := 1
 	result := &dns.Msg{}
 
 	// execute the query
 	for {
-		result, _, err = dnsClient.Exchange(m, net.JoinHostPort(nameserver, "53"))
+		result, _, err = dnsClient.Exchange(m, hostPort)
 		if err == nil {
 			// success
 			break
