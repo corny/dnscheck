@@ -90,6 +90,7 @@ func main() {
 func createJobs() {
 	currentId := 0
 	batchSize := 1000
+	found := batchSize
 
 	// Open SQL connection
 	db, err := sql.Open("mysql", connection)
@@ -98,14 +99,14 @@ func createJobs() {
 	}
 	defer db.Close()
 
-	for {
+	for batchSize == found {
 		// Read the next batch
 		rows, err := db.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", currentId, batchSize)
 		if err != nil {
 			panic(err)
 		}
 
-		found := 0
+		found = 0
 		for rows.Next() {
 			j := new(job)
 
@@ -119,13 +120,8 @@ func createJobs() {
 			found += 1
 		}
 		rows.Close()
-
-		// Last batch?
-		if found < batchSize {
-			close(pending)
-			return
-		}
 	}
+	close(pending)
 }
 
 func worker() {
