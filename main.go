@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"sync"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 var (
 	pending         = make(chan *job, 100)
 	finished        = make(chan *job, 100)
-	done            = make(chan bool)
+	done            sync.WaitGroup
 	workersCount    = 1
 	referenceServer = "8.8.8.8"
 	connection      string
@@ -58,8 +59,10 @@ func main() {
 	// Use all cores
 	cpuCount := runtime.NumCPU()
 	runtime.GOMAXPROCS(cpuCount)
+
 	workersCount = *workersPerCore * cpuCount
 	fmt.Println("Starting", workersCount, "workers")
+	done.Add(workersCount)
 
 	// Get results from the reference nameserver
 	res, err := resolveDomains(referenceServer)
@@ -78,8 +81,10 @@ func main() {
 
 	createJobs()
 
-	// wait for resultWriter to finish
-	<-done
+	// wait for workers to finish
+	done.Wait()
+
+	close(finished)
 }
 
 func createJobs() {
@@ -124,17 +129,11 @@ func createJobs() {
 }
 
 func worker() {
-	for {
-		job := <-pending
-		if job != nil {
-			executeJob(job)
-			finished <- job
-		} else {
-			log.Println("received all jobs")
-			finished <- nil
-			return
-		}
+	for job := range pending {
+		executeJob(job)
+		finished <- job
 	}
+	done.Done()
 }
 
 func resultWriter() {
@@ -151,19 +150,10 @@ func resultWriter() {
 			"WHERE id=?")
 	defer stm.Close()
 
-	doneCount := 0
-	for doneCount < workersCount {
-		res := <-finished
-		// log.Println("finished job", res.id)
-		if res == nil {
-			doneCount++
-			log.Println("worker terminated")
-		} else {
-			log.Println(res)
-			stm.Exec(res.name, res.state, res.err, res.version, res.country, res.city, res.state, res.id)
-		}
+	for res := range finished {
+		log.Println(res)
+		stm.Exec(res.name, res.state, res.err, res.version, res.country, res.city, res.state, res.id)
 	}
-	done <- true
 }
 
 // consumes a job and writes the result in the given job
