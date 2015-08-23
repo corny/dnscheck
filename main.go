@@ -7,7 +7,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
-	"runtime"
 	"sync"
 )
 
@@ -23,7 +22,7 @@ var (
 	pending         = make(chan *job, 100)
 	finished        = make(chan *job, 100)
 	done            sync.WaitGroup
-	workersCount    = 1
+	workersCount    = 32
 	referenceServer = "8.8.8.8"
 	connection      string
 	domainArg       string
@@ -34,7 +33,7 @@ func main() {
 	flag.StringVar(&domainArg, "domains", "domains.txt", "Path to file containing the domain list")
 	flag.StringVar(&geoDbPath, "geodb", "GeoLite2-City.mmdb", "Path to GeoDB database")
 	flag.StringVar(&referenceServer, "reference", referenceServer, "The nameserver that every other is compared with")
-	workersPerCore := flag.Int("workers-per-core", 8, "Number of worker routines per CPU core")
+	flag.IntVar(&workersCount, "workers", workersCount, "Number of worker routines")
 	flag.Parse()
 
 	dnsClient.ReadTimeout = timeout
@@ -57,12 +56,6 @@ func main() {
 	location(referenceServer)
 
 	// Use all cores
-	cpuCount := runtime.NumCPU()
-	runtime.GOMAXPROCS(cpuCount)
-
-	workersCount = *workersPerCore * cpuCount
-	fmt.Println("Starting", workersCount, "workers")
-	done.Add(workersCount)
 
 	// Get results from the reference nameserver
 	res, err := resolveDomains(referenceServer)
@@ -75,6 +68,7 @@ func main() {
 	go resultWriter()
 
 	// Start workers
+	done.Add(workersCount)
 	for i := 0; i < workersCount; i++ {
 		go worker()
 	}
