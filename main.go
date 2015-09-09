@@ -21,7 +21,8 @@ const (
 var (
 	pending         = make(chan *job, 100)
 	finished        = make(chan *job, 100)
-	done            sync.WaitGroup
+	pendingWg       sync.WaitGroup
+	finishedWg      sync.WaitGroup
 	workersCount    = 32
 	referenceServer = "8.8.8.8"
 	connection      string
@@ -65,10 +66,11 @@ func main() {
 	expectedResults = res
 
 	// Start result writer
+	finishedWg.Add(1)
 	go resultWriter()
 
 	// Start workers
-	done.Add(workersCount)
+	pendingWg.Add(workersCount)
 	for i := 0; i < workersCount; i++ {
 		go worker()
 	}
@@ -76,9 +78,10 @@ func main() {
 	createJobs()
 
 	// wait for workers to finish
-	done.Wait()
+	pendingWg.Wait()
 
 	close(finished)
+	finishedWg.Wait()
 }
 
 func createJobs() {
@@ -123,7 +126,7 @@ func worker() {
 		executeJob(job)
 		finished <- job
 	}
-	done.Done()
+	pendingWg.Done()
 }
 
 func resultWriter() {
@@ -144,6 +147,8 @@ func resultWriter() {
 		log.Println(res)
 		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.state, res.id)
 	}
+
+	finishedWg.Done()
 }
 
 // consumes a job and writes the result in the given job
