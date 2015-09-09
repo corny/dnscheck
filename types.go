@@ -9,6 +9,7 @@ type job struct {
 	err     string
 	country string
 	city    string
+	dnssec  *bool
 }
 
 type stringSet map[string]struct{}

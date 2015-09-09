@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestExistent(t *testing.T) {
-	result, err := resolve(referenceServer, "example.com")
+	result, _, err := resolve(referenceServer, "example.com")
 
 	if err != nil {
 		t.Fatal("an error occured")
@@ -15,10 +15,14 @@ func TestExistent(t *testing.T) {
 }
 
 func TestNotExistent(t *testing.T) {
-	result, err := resolve(referenceServer, "xxx.example.com")
+	result, authenticated, err := resolve(referenceServer, "xxx.example.com")
 
 	if err != nil {
 		t.Fatal("an error occured")
+	}
+
+	if authenticated {
+		t.Fatal("answer should not be authenticated")
 	}
 
 	if len(result) > 0 {
@@ -26,8 +30,24 @@ func TestNotExistent(t *testing.T) {
 	}
 }
 
+func TestAuthenticated(t *testing.T) {
+	result, authenticated, err := resolve(referenceServer, "www.dnssec-tools.org")
+
+	if err != nil {
+		t.Fatal("an error occured")
+	}
+
+	if !authenticated {
+		t.Fatal("answer not authenticated")
+	}
+
+	if len(result) != 1 {
+		t.Fatal("invalid number of records returned:", len(result))
+	}
+}
+
 func TestUnreachable(t *testing.T) {
-	_, err := resolve("127.1.2.3", "example.com")
+	_, _, err := resolve("127.1.2.3", "example.com")
 
 	if err == nil {
 		t.Fatal("no error returned")

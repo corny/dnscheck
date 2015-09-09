@@ -58,7 +58,7 @@ func main() {
 	// Use all cores
 
 	// Get results from the reference nameserver
-	res, err := resolveDomains(referenceServer)
+	res, _, err := resolveDomains(referenceServer)
 	if err != nil {
 		panic(err)
 	}
@@ -135,14 +135,14 @@ func resultWriter() {
 	defer db.Close()
 
 	stm, err := db.Prepare(
-		"UPDATE nameservers SET name=?, state=?, error=?, version=?, checked_at=NOW(), country_id=?, city=?," +
+		"UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=?," +
 			"state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END )" +
 			"WHERE id=?")
 	defer stm.Close()
 
 	for res := range finished {
 		log.Println(res)
-		stm.Exec(res.name, res.state, res.err, res.version, res.country, res.city, res.state, res.id)
+		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.state, res.id)
 	}
 }
 
@@ -154,7 +154,7 @@ func executeJob(job *job) {
 	job.country, job.city = location(job.address)
 
 	// Run the check
-	err := check(job)
+	err, dnssec := check(job)
 	job.name = ptrName(job.address)
 
 	// query the bind version
@@ -165,6 +165,7 @@ func executeJob(job *job) {
 	if err == nil {
 		job.state = "valid"
 		job.err = ""
+		job.dnssec = &dnssec
 	} else {
 		job.state = "invalid"
 		job.err = err.Error()

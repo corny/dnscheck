@@ -57,12 +57,12 @@ func checkResult(expectedMap resultMap, solvedMap resultMap) error {
 	return nil
 }
 
-func check(job *job) error {
-	solved, err := resolveDomains(job.address)
+func check(job *job) (error, bool) {
+	solved, dnssec, err := resolveDomains(job.address)
 
 	if err != nil {
-		return err
+		return err, dnssec
 	}
 
-	return checkResult(expectedResults, solved)
+	return checkResult(expectedResults, solved), dnssec
 }

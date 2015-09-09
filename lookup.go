@@ -9,25 +9,27 @@ import (
 var dnsClient = &dns.Client{}
 
 // Query the given nameserver for all domains
-func resolveDomains(nameserver string) (results resultMap, err error) {
+func resolveDomains(nameserver string) (results resultMap, authenticated bool, err error) {
 	results = make(resultMap)
 
 	for _, domain := range domains {
-		result, err := resolve(nameserver, domain)
+		result, authenticatedValue, err := resolve(nameserver, domain)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		results[domain] = result
+		authenticated = authenticated || authenticatedValue
 	}
 
-	return results, nil
+	return results, authenticated, nil
 }
 
 // Query the given nameserver for a single domain
-func resolve(nameserver string, domain string) (records stringSet, err error) {
+func resolve(nameserver string, domain string) (records stringSet, authenticated bool, err error) {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+	m.AuthenticatedData = true
 
 	hostPort := net.JoinHostPort(nameserver, "53")
 	attempt := 1
@@ -63,6 +65,7 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 		return
 	}
 
+	authenticated = result.AuthenticatedData
 	records = make(stringSet)
 
 	// Add addresses to set

@@ -55,6 +55,7 @@ Create a database with the following table:
       `created_at` datetime NOT NULL,
       `updated_at` datetime NOT NULL,
       `version` varchar(255) DEFAULT NULL,
+      `dnssec` boolean DEFAULT NULL,
       PRIMARY KEY (`id`),
       UNIQUE KEY `index_nameservers_on_ip` (`ip`),
       KEY `index_nameservers_on_state` (`state`),
