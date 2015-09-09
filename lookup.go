@@ -43,8 +43,9 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 			err = simplifyError(err)
 			if err.Error() != "i/o timeout" || attempt == maxAttempts {
 				// network problem or timeout
-				return nil, simplifyError(err)
+				return
 			} else {
+				err = nil
 				// retry
 				attempt++
 			}
@@ -53,12 +54,13 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 
 	// NXDomain rcode?
 	if result.Rcode == dns.RcodeNameError {
-		return nil, nil
+		return
 	}
 
 	// Other erroneous rcode?
 	if result.Rcode != dns.RcodeSuccess {
-		return nil, fmt.Errorf("%v for %s", dns.RcodeToString[result.Rcode], domain)
+		err = fmt.Errorf("%v for %s", dns.RcodeToString[result.Rcode], domain)
+		return
 	}
 
 	records = make(stringSet)
@@ -70,7 +72,7 @@ func resolve(nameserver string, domain string) (records stringSet, err error) {
 		}
 	}
 
-	return records, nil
+	return
 }
 
 func ptrName(address string) string {
