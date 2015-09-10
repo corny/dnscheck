@@ -137,15 +137,12 @@ func resultWriter() {
 	}
 	defer db.Close()
 
-	stm, err := db.Prepare(
-		"UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=?," +
-			"state_changed_at = (CASE WHEN ? != state THEN NOW() ELSE state_changed_at END )" +
-			"WHERE id=?")
+	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=? WHERE id=?")
 	defer stm.Close()
 
 	for res := range finished {
 		log.Println(res)
-		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.state, res.id)
+		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.id)
 	}
 
 	finishedWg.Done()
