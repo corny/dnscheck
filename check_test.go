@@ -2,7 +2,10 @@ package main
 
 import "testing"
 
+import "github.com/stretchr/testify/assert"
+
 func TestCheckResult(t *testing.T) {
+	assert := assert.New(t)
 	domains = []string{"example.com"}
 
 	correctAddr := make(stringSet)
@@ -18,18 +21,15 @@ func TestCheckResult(t *testing.T) {
 
 	// compare correct with correct
 	err := checkResult(correctMap, correctMap)
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(err)
 
 	// compare correct with invalid
 	err = checkResult(correctMap, incorrectMap)
-	if err.Error() != "Unexpected result for example.com: 23.0.0.1, 23.0.0.2" {
-		t.Fatal(err)
-	}
+	assert.Error(err, "Unexpected result for example.com: 23.0.0.1, 23.0.0.2")
 }
 
 func TestCheckResultEmpty(t *testing.T) {
+	assert := assert.New(t)
 	domains = []string{"example.com"}
 
 	correctAddr := make(stringSet)
@@ -43,18 +43,13 @@ func TestCheckResultEmpty(t *testing.T) {
 
 	// compare correct with invalid
 	err := checkResult(correctMap, incorrectMap)
-	if err.Error() != "Unexpected result for example.com: NXDOMAIN" {
-		t.Fatal(err)
-	}
+	assert.Error(err, "Unexpected result for example.com: NXDOMAIN")
 }
 
 func TestReadDomains(t *testing.T) {
+	assert := assert.New(t)
 	err := readDomains("domains.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	if len(domains) != 4 {
-		t.Fatal("unexpected domain list:", domains)
-	}
+	assert.NoError(err)
+	assert.Len(domains, 4)
 }

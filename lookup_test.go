@@ -1,74 +1,54 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestExistent(t *testing.T) {
+	assert := assert.New(t)
 	result, _, err := resolve(referenceServer, "example.com")
 
-	if err != nil {
-		t.Fatal("an error occured")
-	}
-
-	if len(result) != 1 {
-		t.Fatal("invalid number of records returned:", len(result))
-	}
+	assert.Nil(err)
+	assert.Len(result, 1)
 }
 
 func TestNotExistent(t *testing.T) {
+	assert := assert.New(t)
 	result, authenticated, err := resolve(referenceServer, "xxx.example.com")
 
-	if err != nil {
-		t.Fatal("an error occured")
-	}
-
-	if authenticated {
-		t.Fatal("answer should not be authenticated")
-	}
-
-	if len(result) > 0 {
-		t.Fatal("no records expected")
-	}
+	assert.Nil(err)
+	assert.False(authenticated)
+	assert.Len(result, 0)
 }
 
 func TestAuthenticated(t *testing.T) {
+	assert := assert.New(t)
 	result, authenticated, err := resolve(referenceServer, "www.dnssec-tools.org")
 
-	if err != nil {
-		t.Fatal("an error occured")
-	}
-
-	if !authenticated {
-		t.Fatal("answer not authenticated")
-	}
-
-	if len(result) != 1 {
-		t.Fatal("invalid number of records returned:", len(result))
-	}
+	assert.Nil(err)
+	assert.True(authenticated)
+	assert.Len(result, 1)
 }
 
 func TestUnreachable(t *testing.T) {
+	assert := assert.New(t)
 	_, _, err := resolve("127.1.2.3", "example.com")
 
-	if err == nil {
-		t.Fatal("no error returned")
-	}
-	if err.Error() != "connection refused" {
-		t.Fatal("unexpected error", err)
-	}
+	assert.EqualError(err, "connection refused")
 }
 
 func TestPtrName(t *testing.T) {
+	assert := assert.New(t)
 	result := ptrName("8.8.8.8")
 
-	if result != "google-public-dns-a.google.com." {
-		t.Fatal("invalid result:", result)
-	}
+	assert.Equal("google-public-dns-a.google.com.", result)
 }
 
 func TestVersion(t *testing.T) {
+	assert := assert.New(t)
 	result := version("82.96.65.2")
 
-	if result != "Make my day" {
-		t.Fatal("invalid result:", result)
-	}
+	assert.Equal("Make my day", result)
 }
