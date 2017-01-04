@@ -13,7 +13,7 @@ It is written in [Go](http://golang.org/) and it scales very well.
 * [DNS library by Miek Gieben](https://github.com/miekg/dns)
 * [MaxMind DB Reader for Go](https://github.com/oschwald/maxminddb-golang)
 * GeoLite2 by MaxMind, available from http://www.maxmind.com
-* A MySQL database
+* A MariaDB/MySQL database
 
 ## Configuration
 
@@ -40,28 +40,9 @@ So you need a `database.yml` with the credentials for your database.
 
 ### Database scheme
 
-Create a database with the following table:
+After creating the database apply the [structure.sql](structure.sql):
 
-    CREATE TABLE `nameservers` (
-      `id` int(11) NOT NULL AUTO_INCREMENT,
-      `ip` varchar(255) NOT NULL,
-      `name` varchar(255) DEFAULT NULL,
-      `state` varchar(255) NOT NULL DEFAULT 'new',
-      `state_changed_at` datetime DEFAULT NULL,
-      `error` varchar(255) DEFAULT NULL,
-      `country_id` char(2) DEFAULT NULL,
-      `city` varchar(255) DEFAULT NULL,
-      `checked_at` datetime DEFAULT NULL,
-      `created_at` datetime NOT NULL,
-      `updated_at` datetime NOT NULL,
-      `version` varchar(255) DEFAULT NULL,
-      `dnssec` boolean DEFAULT NULL,
-      PRIMARY KEY (`id`),
-      UNIQUE KEY `index_nameservers_on_ip` (`ip`),
-      KEY `index_nameservers_on_state` (`state`),
-      KEY `country_state_checked` (`country_id`,`state`,`checked_at`),
-      KEY `index_nameservers_on_version` (`version`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8
+    mysql $database < structure.sql
 
 ## Domain list
 
