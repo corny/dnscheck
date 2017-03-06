@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"fmt"
@@ -7,11 +7,9 @@ import (
 	"github.com/miekg/dns"
 )
 
-var dnsClient = &dns.Client{}
-
-// Query the given nameserver for all domains
-func resolveDomains(nameserver string) (results resultMap, authenticated bool, err error) {
-	results = make(resultMap)
+// ResolveDomains queries the given nameserver for all domains.
+func ResolveDomains(nameserver string) (results ResultMap, authenticated bool, err error) {
+	results = make(ResultMap)
 
 	for _, domain := range domains {
 		result, authenticatedValue, err := resolve(nameserver, domain)
@@ -26,7 +24,7 @@ func resolveDomains(nameserver string) (results resultMap, authenticated bool, e
 }
 
 // Query the given nameserver for a single domain
-func resolve(nameserver string, domain string) (records stringSet, authenticated bool, err error) {
+func resolve(nameserver string, domain string) (records StringSet, authenticated bool, err error) {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
@@ -38,20 +36,19 @@ func resolve(nameserver string, domain string) (records stringSet, authenticated
 
 	// execute the query
 	for {
-		result, _, err = dnsClient.Exchange(m, hostPort)
+		result, _, err = DNSClient.Exchange(m, hostPort)
 		if err == nil {
 			// success
 			break
 		} else {
 			err = simplifyError(err)
-			if err.Error() != "i/o timeout" || attempt == maxAttempts {
+			if err.Error() != "i/o timeout" || attempt == MaxAttempts {
 				// network problem or timeout
 				return
-			} else {
-				err = nil
-				// retry
-				attempt++
 			}
+			err = nil
+			// retry
+			attempt++
 		}
 	}
 
@@ -67,19 +64,20 @@ func resolve(nameserver string, domain string) (records stringSet, authenticated
 	}
 
 	authenticated = result.AuthenticatedData
-	records = make(stringSet)
+	records = make(StringSet)
 
 	// Add addresses to set
 	for _, a := range result.Answer {
 		if record, ok := a.(*dns.A); ok {
-			records.add(record.A.String())
+			records.Add(record.A.String())
 		}
 	}
 
 	return
 }
 
-func ptrName(address string) string {
+// PtrName tries to retrieve the PTR record for the given address.
+func PtrName(address string) string {
 	reverse, err := dns.ReverseAddr(address)
 	if err != nil {
 		return ""
@@ -90,8 +88,8 @@ func ptrName(address string) string {
 	m.SetQuestion(reverse, dns.TypePTR)
 
 	// execute the query
-	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceServer, "53"))
-	if result == nil || result.Rcode != dns.RcodeSuccess {
+	result, _, err := DNSClient.Exchange(m, net.JoinHostPort(Reference, "53"))
+	if result == nil || result.Rcode != dns.RcodeSuccess || err != nil {
 		return ""
 	}
 
@@ -104,15 +102,19 @@ func ptrName(address string) string {
 	return ""
 }
 
-// Query a nameserver for the bind version
-func version(address string) string {
+// Version queries a nameserver for the bind version.
+func Version(address string) string {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.Question = make([]dns.Question, 1)
-	m.Question[0] = dns.Question{"version.bind.", dns.TypeTXT, dns.ClassCHAOS}
+	m.Question[0] = dns.Question{
+		Name:   "version.bind.",
+		Qtype:  dns.TypeTXT,
+		Qclass: dns.ClassCHAOS,
+	}
 
 	// Execute the query
-	r, _, _ := dnsClient.Exchange(m, net.JoinHostPort(address, "53"))
+	r, _, _ := DNSClient.Exchange(m, net.JoinHostPort(address, "53"))
 
 	// Valid response?
 	if r != nil && r.Rcode == dns.RcodeSuccess {

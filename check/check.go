@@ -1,20 +1,19 @@
-package main
+package check
 
 import (
 	"bufio"
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/corny/dnscheck"
 )
 
 // domains to check
 var domains = []string{}
 
-// map of checked domains and their results from the reference server
-var expectedResults resultMap
-
-// reads the domains to check from the given file
-func readDomains(path string) error {
+// ReadDomains reads the domains to check from the given file.
+func ReadDomains(path string) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return err
@@ -30,7 +29,7 @@ func readDomains(path string) error {
 		line := strings.TrimSpace(scanner.Text())
 
 		// skip empty lines and lines with leading hash
-		if len(line) > 0 && strings.Index(line, "#") == -1 {
+		if len(line) > 0 && !strings.Contains(line, "#") {
 			domains = append(domains, line)
 		}
 	}
@@ -39,30 +38,27 @@ func readDomains(path string) error {
 }
 
 // Compare the result with the expectations
-func checkResult(expectedMap resultMap, solvedMap resultMap) error {
-
+func checkResult(expectedMap ResultMap, solvedMap ResultMap) error {
 	for _, domain := range domains {
 		expected := expectedMap[domain]
 		result := solvedMap[domain]
-		if !expected.equals(result) {
+		if !expected.Equals(result) {
 			if len(result) == 0 {
 				// empty result means NXDOMAIN
 				return fmt.Errorf("Unexpected result for %s: NXDOMAIN", domain)
-			} else {
-				return fmt.Errorf("Unexpected result for %s: %v", domain, result)
 			}
+			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
 		}
 	}
 
 	return nil
 }
 
-func check(job *job) (error, bool) {
-	solved, dnssec, err := resolveDomains(job.address)
-
+// Run performs a check job.
+func Run(job *dnscheck.Nameserver) (bool, error) {
+	solved, dnssec, err := ResolveDomains(job.Address)
 	if err != nil {
-		return err, dnssec
+		return dnssec, err
 	}
-
-	return checkResult(expectedResults, solved), dnssec
+	return dnssec, checkResult(Expectations, solved)
 }
