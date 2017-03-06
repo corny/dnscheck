@@ -3,6 +3,7 @@ go_import_path: github.com/corny/dnscheck
 
 go:
   - 1.7
+  - 1.8
 
 install:
   - go get -u github.com/stretchr/testify/assert
