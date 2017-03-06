@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"sync"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
