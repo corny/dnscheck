@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 
 func TestExistent(t *testing.T) {
 	assert := assert.New(t)
-	result, _, err := resolve(referenceServer, "example.com")
+	result, _, err := resolve(Reference, "example.com")
 
 	assert.Nil(err)
 	assert.Len(result, 1)
@@ -16,7 +16,7 @@ func TestExistent(t *testing.T) {
 
 func TestNotExistent(t *testing.T) {
 	assert := assert.New(t)
-	result, authenticated, err := resolve(referenceServer, "xxx.example.com")
+	result, authenticated, err := resolve(Reference, "xxx.example.com")
 
 	assert.Nil(err)
 	assert.False(authenticated)
@@ -25,7 +25,7 @@ func TestNotExistent(t *testing.T) {
 
 func TestAuthenticated(t *testing.T) {
 	assert := assert.New(t)
-	result, authenticated, err := resolve(referenceServer, "www.dnssec-tools.org")
+	result, authenticated, err := resolve(Reference, "www.dnssec-tools.org")
 
 	assert.Nil(err)
 	assert.True(authenticated)
@@ -41,14 +41,14 @@ func TestUnreachable(t *testing.T) {
 
 func TestPtrName(t *testing.T) {
 	assert := assert.New(t)
-	result := ptrName("8.8.8.8")
+	result := PtrName("8.8.8.8")
 
 	assert.Equal("google-public-dns-a.google.com.", result)
 }
 
 func TestVersion(t *testing.T) {
 	assert := assert.New(t)
-	result := version("82.96.65.2")
+	result := Version("82.96.65.2")
 
 	assert.Equal("Make my day", result)
 }

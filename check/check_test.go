@@ -1,4 +1,4 @@
-package main
+package check
 
 import "testing"
 
@@ -8,15 +8,15 @@ func TestCheckResult(t *testing.T) {
 	assert := assert.New(t)
 	domains = []string{"example.com"}
 
-	correctAddr := make(stringSet)
-	correctAddr.add("1.2.3.4")
-	correctMap := make(resultMap)
+	correctAddr := make(StringSet)
+	correctAddr.Add("1.2.3.4")
+	correctMap := make(ResultMap)
 	correctMap["example.com"] = correctAddr
 
-	incorrectAddr := make(stringSet)
-	incorrectAddr.add("23.0.0.1")
-	incorrectAddr.add("23.0.0.2")
-	incorrectMap := make(resultMap)
+	incorrectAddr := make(StringSet)
+	incorrectAddr.Add("23.0.0.1")
+	incorrectAddr.Add("23.0.0.2")
+	incorrectMap := make(ResultMap)
 	incorrectMap["example.com"] = incorrectAddr
 
 	// compare correct with correct
@@ -32,13 +32,13 @@ func TestCheckResultEmpty(t *testing.T) {
 	assert := assert.New(t)
 	domains = []string{"example.com"}
 
-	correctAddr := make(stringSet)
-	correctAddr.add("1.2.3.4")
-	correctMap := make(resultMap)
+	correctAddr := make(StringSet)
+	correctAddr.Add("1.2.3.4")
+	correctMap := make(ResultMap)
 	correctMap["example.com"] = correctAddr
 
-	incorrectAddr := make(stringSet)
-	incorrectMap := make(resultMap)
+	incorrectAddr := make(StringSet)
+	incorrectMap := make(ResultMap)
 	incorrectMap["example.com"] = incorrectAddr
 
 	// compare correct with invalid
@@ -48,7 +48,7 @@ func TestCheckResultEmpty(t *testing.T) {
 
 func TestReadDomains(t *testing.T) {
 	assert := assert.New(t)
-	err := readDomains("domains.txt")
+	err := ReadDomains("testdata/domains.txt")
 
 	assert.NoError(err)
 	assert.Len(domains, 4)

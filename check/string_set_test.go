@@ -1,4 +1,4 @@
-package main
+package check
 
 import (
 	"testing"
@@ -9,17 +9,17 @@ import (
 func TestCompare(t *testing.T) {
 	assert := assert.New(t)
 
-	set1 := make(stringSet)
-	set1.add("bar")
-	set1.add("foo")
+	set1 := make(StringSet)
+	set1.Add("bar")
+	set1.Add("foo")
 
-	set2 := make(stringSet)
-	set2.add("foo")
-	set2.add("bar")
+	set2 := make(StringSet)
+	set2.Add("foo")
+	set2.Add("bar")
 
-	set3 := make(stringSet)
-	set3.add("foo")
-	set3.add("baz")
+	set3 := make(StringSet)
+	set3.Add("foo")
+	set3.Add("baz")
 
 	assert.Equal(set1, set2)
 	assert.Equal(set2, set1)
@@ -29,10 +29,10 @@ func TestCompare(t *testing.T) {
 func TestString(t *testing.T) {
 	assert := assert.New(t)
 
-	set := make(stringSet)
-	set.add("bar")
-	set.add("xx")
-	set.add("foo")
+	set := make(StringSet)
+	set.Add("bar")
+	set.Add("xx")
+	set.Add("foo")
 
 	assert.Equal("bar, foo, xx", set.String())
 }

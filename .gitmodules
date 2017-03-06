@@ -1,0 +1,12 @@
+[submodule "vendor/github.com/go-sql-driver/mysql"]
+	path = vendor/github.com/go-sql-driver/mysql
+	url = https://github.com/go-sql-driver/mysql
+[submodule "vendor/github.com/miekg/dns"]
+	path = vendor/github.com/miekg/dns
+	url = https://github.com/miekg/dns
+[submodule "vendor/github.com/oschwald/geoip2-golang"]
+	path = vendor/github.com/oschwald/geoip2-golang
+	url = https://github.com/oschwald/geoip2-golang
+[submodule "vendor/gopkg.in/yaml.v2"]
+	path = vendor/gopkg.in/yaml.v2
+	url = https://gopkg.in/yaml.v2
