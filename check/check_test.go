@@ -48,7 +48,7 @@ func TestCheckResultEmpty(t *testing.T) {
 
 func TestReadDomains(t *testing.T) {
 	assert := assert.New(t)
-	err := ReadDomains("domains.txt")
+	err := ReadDomains("testdata/domains.txt")
 
 	assert.NoError(err)
 	assert.Len(domains, 4)
