@@ -25,7 +25,7 @@ func TestNotExistent(t *testing.T) {
 
 func TestAuthenticated(t *testing.T) {
 	assert := assert.New(t)
-	result, authenticated, err := resolve(referenceServer, "www.dnssec-tools.org")
+	result, authenticated, err := resolve(referenceServer, "verisignlabs.com")
 
 	assert.Nil(err)
 	assert.True(authenticated)
