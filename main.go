@@ -57,8 +57,6 @@ func main() {
 	// check the GeoDB
 	location(referenceServer)
 
-	// Use all cores
-
 	// Get results from the reference nameserver
 	res, _, err := resolveDomains(referenceServer)
 	if err != nil {
@@ -151,8 +149,6 @@ func resultWriter() {
 
 // consumes a job and writes the result in the given job
 func executeJob(job *job) {
-	// log.Println("received job", job.id)
-
 	// GeoDB lookup
 	job.country, job.city = location(job.address)
 

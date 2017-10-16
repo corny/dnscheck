@@ -19,7 +19,6 @@ func location(address string) (isocode string, city string) {
 	record, err := db.City(net.ParseIP(address))
 	if err != nil {
 		log.Fatal(err)
-		return "", ""
 	}
 
 	return record.Country.IsoCode, record.City.Names["en"]
