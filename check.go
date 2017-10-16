@@ -48,21 +48,20 @@ func checkResult(expectedMap resultMap, solvedMap resultMap) error {
 			if len(result) == 0 {
 				// empty result means NXDOMAIN
 				return fmt.Errorf("Unexpected result for %s: NXDOMAIN", domain)
-			} else {
-				return fmt.Errorf("Unexpected result for %s: %v", domain, result)
 			}
+			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
 		}
 	}
 
 	return nil
 }
 
-func check(job *job) (error, bool) {
+func check(job *job) (bool, error) {
 	solved, dnssec, err := resolveDomains(job.address)
 
 	if err != nil {
-		return err, dnssec
+		return dnssec, err
 	}
 
-	return checkResult(expectedResults, solved), dnssec
+	return dnssec, checkResult(expectedResults, solved)
 }

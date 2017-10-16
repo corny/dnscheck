@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 func databasePath(file string, environment string) string {

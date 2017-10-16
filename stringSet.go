@@ -10,7 +10,7 @@ func (set stringSet) String() string {
 	i := 0
 	result := make([]string, len(set))
 
-	for key, _ := range set {
+	for key := range set {
 		result[i] = key
 		i++
 	}
@@ -23,15 +23,15 @@ func (set stringSet) add(str string) {
 	set[str] = struct{}{}
 }
 
-func (this stringSet) equals(that stringSet) bool {
-	if len(this) != len(that) {
+func (set stringSet) equals(other stringSet) bool {
+	if len(set) != len(other) {
 		return false
 	}
-	if len(this) == 0 {
+	if len(set) == 0 {
 		return true
 	}
-	for key, _ := range this {
-		_, ok := that[key]
+	for key := range set {
+		_, ok := other[key]
 		if !ok {
 			return false
 		}

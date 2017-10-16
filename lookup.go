@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/miekg/dns"
 	"net"
+
+	"github.com/miekg/dns"
 )
 
 var dnsClient = &dns.Client{}
@@ -46,11 +47,10 @@ func resolve(nameserver string, domain string) (records stringSet, authenticated
 			if err.Error() != "i/o timeout" || attempt == maxAttempts {
 				// network problem or timeout
 				return
-			} else {
-				err = nil
-				// retry
-				attempt++
 			}
+			err = nil
+			// retry
+			attempt++
 		}
 	}
 
@@ -108,7 +108,11 @@ func version(address string) string {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.Question = make([]dns.Question, 1)
-	m.Question[0] = dns.Question{"version.bind.", dns.TypeTXT, dns.ClassCHAOS}
+	m.Question[0] = dns.Question{
+		Name:   "version.bind.",
+		Qtype:  dns.TypeTXT,
+		Qclass: dns.ClassCHAOS,
+	}
 
 	// Execute the query
 	r, _, _ := dnsClient.Exchange(m, net.JoinHostPort(address, "53"))

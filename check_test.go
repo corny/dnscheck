@@ -1,8 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
 
-import "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestCheckResult(t *testing.T) {
 	assert := assert.New(t)

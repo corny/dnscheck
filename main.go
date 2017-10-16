@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"sync"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -85,7 +86,7 @@ func main() {
 }
 
 func createJobs() {
-	currentId := 0
+	currentID := 0
 	batchSize := 1000
 	found := batchSize
 
@@ -98,7 +99,7 @@ func createJobs() {
 
 	for batchSize == found {
 		// Read the next batch
-		rows, err := db.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", currentId, batchSize)
+		rows, err := db.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", currentID, batchSize)
 		if err != nil {
 			panic(err)
 		}
@@ -113,8 +114,8 @@ func createJobs() {
 				panic(err)
 			}
 			pending <- j
-			currentId = j.id
-			found += 1
+			currentID = j.id
+			found++
 		}
 		rows.Close()
 	}
@@ -156,7 +157,7 @@ func executeJob(job *job) {
 	job.country, job.city = location(job.address)
 
 	// Run the check
-	err, dnssec := check(job)
+	dnssec, err := check(job)
 	job.name = ptrName(job.address)
 
 	// query the bind version

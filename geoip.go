@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/oschwald/geoip2-golang"
 	"log"
 	"net"
+
+	"github.com/oschwald/geoip2-golang"
 )
 
 var geoDbPath string
