@@ -9,7 +9,7 @@ import (
 
 func databasePath(file string, environment string) string {
 	yamlFile, err := ioutil.ReadFile(file)
-	dbConfig := make(config)
+	dbConfig := make(map[string]map[string]string)
 
 	if err != nil {
 		panic(err)
