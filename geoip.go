@@ -12,13 +12,13 @@ var geoDbPath string
 func location(address string) (isocode string, city string) {
 	db, err := geoip2.Open(geoDbPath)
 	if err != nil {
-		panic(err)
+		log.Fatalf("cannot open geoip database %q: %v", geoDbPath, err)
 	}
 	defer db.Close()
 
 	record, err := db.City(net.ParseIP(address))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("cannot resolve IP address: %v", err)
 	}
 
 	return record.Country.IsoCode, record.City.Names["en"]

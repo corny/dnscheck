@@ -90,7 +90,7 @@ func ptrName(address string) string {
 
 	// execute the query
 	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceServer, "53"))
-	if result == nil || result.Rcode != dns.RcodeSuccess {
+	if err != nil || result == nil || result.Rcode != dns.RcodeSuccess {
 		return ""
 	}
 

@@ -3,28 +3,29 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
+	"log"
 
 	"gopkg.in/yaml.v2"
 )
 
 func databasePath(file string, environment string) string {
 	yamlFile, err := ioutil.ReadFile(file)
-	dbConfig := make(map[string]map[string]string)
-
 	if err != nil {
-		panic(err)
+		log.Fatalf("cannot read %q: %v", file, err)
 	}
+
+	dbConfig := make(map[string]map[string]string)
 
 	err = yaml.Unmarshal(yamlFile, &dbConfig)
 	if err != nil {
-		panic(err)
+		log.Fatalf("cannot parse %q: %v", file, err)
 	}
 
 	buffer := new(bytes.Buffer)
 	envConfig := dbConfig[environment]
 
 	if len(envConfig) == 0 {
-		panic("invalid RAILS_ENV: " + environment)
+		log.Fatalf("invalid RAILS_ENV: %q", environment)
 	}
 
 	host := envConfig["host"]
@@ -52,7 +53,7 @@ func databasePath(file string, environment string) string {
 		}
 		buffer.WriteString(")")
 	} else {
-		panic("socket or host must be set in database config")
+		log.Fatal("socket or host must be set in database config")
 	}
 
 	buffer.WriteString("/" + database)

@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -56,8 +55,7 @@ func main() {
 
 	// read domain list
 	if err := readDomains(domainArg); err != nil {
-		fmt.Println("unable to read domain list")
-		panic(err)
+		log.Fatalf("unable to read domain list: %v", err)
 	}
 
 	// load database configuration
@@ -69,7 +67,7 @@ func main() {
 	// Get results from the reference nameserver
 	res, _, err := resolveDomains(referenceServer)
 	if err != nil {
-		panic(err)
+		log.Fatalf("error resolving domains from reference server: %v", err)
 	}
 	expectedResults = res
 
@@ -100,7 +98,7 @@ func createJobs() {
 	// Open SQL connection
 	db, err := sql.Open("mysql", connection)
 	if err != nil {
-		panic(err)
+		log.Fatalf("cannot connect to database: %v", err)
 	}
 	defer db.Close()
 
@@ -108,7 +106,7 @@ func createJobs() {
 		// Read the next batch
 		rows, err := db.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", currentID, batchSize)
 		if err != nil {
-			panic(err)
+			log.Fatalf("select batch failed: %v", err)
 		}
 
 		found = 0
@@ -118,7 +116,7 @@ func createJobs() {
 			// get RawBytes from data
 			err = rows.Scan(&j.id, &j.address)
 			if err != nil {
-				panic(err)
+				log.Fatalf("scanning DB values failed: %v", err)
 			}
 			pending <- j
 			currentID = j.id
@@ -141,11 +139,14 @@ func resultWriter() {
 	// Open SQL connection
 	db, err := sql.Open("mysql", connection)
 	if err != nil {
-		panic(err)
+		log.Fatalf("cannot connect to database: %v", err)
 	}
 	defer db.Close()
 
 	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=? WHERE id=?")
+	if err != nil {
+		log.Fatalf("prepare statement failed: %v", err)
+	}
 	defer stm.Close()
 
 	for res := range finished {
