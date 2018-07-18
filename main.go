@@ -6,13 +6,15 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 const (
 	// Timeout for DNS queries
-	timeout = 3 * 1e9
+	timeout = 3 * time.Second
 
 	// maximum number of attempts for a query
 	maxAttempts = 3
@@ -29,6 +31,9 @@ var (
 	domainArg       string
 	verbose         bool
 	syslog          bool
+	logStats        bool
+
+	nPending, nFinished uint64
 )
 
 func main() {
@@ -39,6 +44,7 @@ func main() {
 	flag.IntVar(&workersCount, "workers", workersCount, "Number of worker routines")
 	flag.BoolVar(&verbose, "verbose", verbose, "Increase logging output")
 	flag.BoolVar(&syslog, "syslog", syslog, "Prepare logging for syslog (print to stdout, no timestamps)")
+	flag.BoolVar(&logStats, "stats", logStats, "Periodically log job statistics")
 	flag.Parse()
 
 	if syslog {
@@ -81,6 +87,9 @@ func main() {
 		go worker()
 	}
 
+	if logStats {
+		go jobStatLogger()
+	}
 	createJobs()
 
 	// wait for workers to finish
@@ -121,6 +130,9 @@ func createJobs() {
 			pending <- j
 			currentID = j.id
 			found++
+			if logStats {
+				atomic.AddUint64(&nPending, 1)
+			}
 		}
 		rows.Close()
 	}
@@ -131,6 +143,9 @@ func worker() {
 	for job := range pending {
 		executeJob(job)
 		finished <- job
+		if logStats {
+			atomic.AddUint64(&nFinished, 1)
+		}
 	}
 	pendingWg.Done()
 }
@@ -180,5 +195,19 @@ func executeJob(job *job) {
 	} else {
 		job.state = "invalid"
 		job.err = err.Error()
+	}
+}
+
+func jobStatLogger() {
+	nfLast := nFinished
+	ival := 30 * time.Second
+
+	for range time.NewTicker(ival).C {
+		np := atomic.LoadUint64(&nPending)
+		nf := atomic.LoadUint64(&nFinished)
+		rate := float64(nf-nfLast) / float64(ival/time.Second)
+		nfLast = nf
+
+		log.Printf("currently pending: %d, finished: %d, approx rate: %0.1f jobs/s", np-nf, nf, rate)
 	}
 }
