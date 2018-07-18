@@ -28,6 +28,8 @@ var (
 	referenceServer = "8.8.8.8"
 	connection      string
 	domainArg       string
+	verbose         bool
+	syslog          bool
 )
 
 func main() {
@@ -36,7 +38,14 @@ func main() {
 	flag.StringVar(&geoDbPath, "geodb", "GeoLite2-City.mmdb", "Path to GeoDB database")
 	flag.StringVar(&referenceServer, "reference", referenceServer, "The nameserver that every other is compared with")
 	flag.IntVar(&workersCount, "workers", workersCount, "Number of worker routines")
+	flag.BoolVar(&verbose, "verbose", verbose, "Increase logging output")
+	flag.BoolVar(&syslog, "syslog", syslog, "Prepare logging for syslog (print to stdout, no timestamps)")
 	flag.Parse()
+
+	if syslog {
+		log.SetOutput(os.Stdout)
+		log.SetFlags(0)
+	}
 
 	dnsClient.ReadTimeout = timeout
 
@@ -140,7 +149,9 @@ func resultWriter() {
 	defer stm.Close()
 
 	for res := range finished {
-		log.Println(res)
+		if verbose {
+			log.Println(res)
+		}
 		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.id)
 	}
 
