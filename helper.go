@@ -10,7 +10,7 @@ func simplifyError(err error) error {
 	index := strings.LastIndex(str, ": ")
 
 	if index != -1 {
-		str = str[index+2 : len(str)]
+		str = str[index+2:]
 	}
 
 	return errors.New(str)
