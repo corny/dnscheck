@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// creates a comma seperated sorted list
+// creates a comma separated sorted list
 func (set stringSet) String() string {
 	i := 0
 	result := make([]string, len(set))
