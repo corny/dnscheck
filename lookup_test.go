@@ -29,7 +29,7 @@ func TestAuthenticated(t *testing.T) {
 
 	assert.Nil(err)
 	assert.True(authenticated)
-	assert.Len(result, 1)
+	assert.Len(result, 2)
 }
 
 func TestUnreachable(t *testing.T) {
