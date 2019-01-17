@@ -1,0 +1,32 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      - run: go get -v -t -d ./...
+      - run: go test -v ./...
+
+  checks:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+
+      # check goftm
+      - run: .circleci/check-gofmt
+
+      # check misspell
+      - run: go get github.com/client9/misspell/cmd/misspell
+      - run: misspell -error .
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - checks
+    - build
