@@ -29,6 +29,9 @@ var (
 	batchSize  = exportCmd.Flag("batch-size", "Batch size for fetching database records").Default("1000").Uint()
 	outputPath = exportCmd.Flag("output", "Path to output directory").Default(".").String()
 
+	purgeCmd    = app.Command("purge", "Purge database")
+	maxCheckAge = purgeCmd.Flag("max-age", "Maximum age of check results and unreachable nameservers in days").Default("30").Uint()
+
 	dbConn *sql.DB
 )
 
@@ -77,6 +80,9 @@ func main() {
 			Destination: *outputPath,
 		}
 		err = exporter.Run()
+
+	case purgeCmd.FullCommand():
+		err = runPurge()
 	}
 
 	// Check result
