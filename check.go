@@ -1,67 +1,78 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
+	"log"
+
+	"github.com/pkg/errors"
 )
 
-// domains to check
-var domains = []string{}
-
-// map of checked domains and their results from the reference server
-var expectedResults resultMap
-
-// reads the domains to check from the given file
-func readDomains(path string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// create empty array
-	domains = []string{}
-
-	// Read lines
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		// skip empty lines and lines with leading hash
-		if len(line) > 0 && strings.Index(line, "#") == -1 {
-			domains = append(domains, line)
-		}
+func runCheck() error {
+	if metricsListenAddress != nil {
+		go startMetrics()
 	}
 
-	return scanner.Err()
-}
-
-// Compare the result with the expectations
-func checkResult(expectedMap resultMap, solvedMap resultMap) error {
-
-	for _, domain := range domains {
-		expected := expectedMap[domain]
-		result := solvedMap[domain]
-		if !expected.equals(result) {
-			if len(result) == 0 {
-				// empty result means NXDOMAIN
-				return fmt.Errorf("Unexpected result for %s: NXDOMAIN", domain)
-			}
-			return fmt.Errorf("Unexpected result for %s: %v", domain, result)
-		}
+	// read domain list
+	if err := checker.ReadDomains(*domains); err != nil {
+		return errors.Wrap(err, "unable to read domain list")
 	}
+
+	if err := checker.Start(); err != nil {
+		return errors.Wrap(err, "unable to start checker")
+	}
+
+	// Start result writer
+	finishedWg.Add(1)
+	go resultWriter()
+
+	createJobs()
+	checker.Stop()
+	finishedWg.Wait()
 
 	return nil
 }
 
-func check(job *job) (bool, error) {
-	solved, dnssec, err := resolveDomains(job.address)
+func createJobs() {
+	id := 0
+	batchSize := 1000
+	found := batchSize
 
+	for batchSize == found {
+		// Read the next batch
+		rows, err := dbConn.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", id, batchSize)
+		if err != nil {
+			log.Fatalf("select batch failed: %v", err)
+		}
+
+		found = 0
+		for rows.Next() {
+			var address string
+
+			// get RawBytes from data
+			err = rows.Scan(&id, &address)
+			if err != nil {
+				log.Fatalf("scanning DB values failed: %v", err)
+			}
+
+			checker.Enqueue(id, address)
+			found++
+		}
+		rows.Close()
+	}
+}
+
+func resultWriter() {
+	stm, err := dbConn.Prepare("UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=? WHERE id=?")
 	if err != nil {
-		return dnssec, err
+		log.Fatalf("prepare statement failed: %v", err)
+	}
+	defer stm.Close()
+
+	for res := range checker.Results() {
+		if *debug {
+			log.Println(res)
+		}
+		stm.Exec(res.Name, res.State, res.Err, res.Version, res.Dnssec, res.Country, res.City, res.ID)
 	}
 
-	return dnssec, checkResult(expectedResults, solved)
+	finishedWg.Done()
 }

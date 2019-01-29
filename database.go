@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
 )
 

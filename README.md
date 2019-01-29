@@ -59,4 +59,4 @@ All of the domains should resolve to the same IP addresses (not location based /
 Replace `env` with your environment name (e.g. development or production) and pass the path to your database.yml.
 `dnscheck -h` prints a list of all supported arguments.
 
-    RAILS_ENV=env dnscheck -domains path/to/domains -database path/to/database.yml -geodb path/to/GeoLite2-City.mmdb
+    RAILS_ENV=env dnscheck check --domains path/to/domains --database path/to/database.yml --geodb path/to/GeoLite2-City.mmdb

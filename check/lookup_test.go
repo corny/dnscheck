@@ -1,10 +1,19 @@
-package main
+package check
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var (
+	referenceServer = "8.8.8.8"
+	testChecker     = &Checker{ReferenceServer: referenceServer}
+)
+
+func resolve(server, query string) (records stringSet, authenticated bool, err error) {
+	return testChecker.resolve(server, query)
+}
 
 func TestExistent(t *testing.T) {
 	assert := assert.New(t)
@@ -41,14 +50,14 @@ func TestUnreachable(t *testing.T) {
 
 func TestPtrName(t *testing.T) {
 	assert := assert.New(t)
-	result := ptrName("8.8.8.8")
+	result := testChecker.ptrName("8.8.8.8")
 
 	assert.Equal("google-public-dns-a.google.com.", result)
 }
 
 func TestVersion(t *testing.T) {
 	assert := assert.New(t)
-	result := version("82.96.65.2")
+	result := testChecker.version("82.96.65.2")
 
 	assert.Equal("Make my day", result)
 }

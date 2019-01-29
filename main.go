@@ -2,212 +2,73 @@ package main
 
 import (
 	"database/sql"
-	"flag"
+	"fmt"
 	"log"
 	"os"
 	"sync"
-	"sync/atomic"
-	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-)
-
-const (
-	// Timeout for DNS queries
-	timeout = 3 * time.Second
-
-	// maximum number of attempts for a query
-	maxAttempts = 3
+	"github.com/corny/dnscheck/check"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
-	pending         = make(chan *job, 100)
-	finished        = make(chan *job, 100)
-	pendingWg       sync.WaitGroup
-	finishedWg      sync.WaitGroup
-	workersCount    = 32
-	referenceServer = "8.8.8.8"
-	connection      string
-	domainArg       string
-	verbose         bool
-	syslog          bool
-	logStats        bool
+	app      = kingpin.New("dnscheck", "A public dns checker")
+	debug    = app.Flag("debug", "Enable debug mode.").Bool()
+	syslog   = app.Flag("syslog", "Prepare logging for syslog (print to stdout, no timestamps)").Bool()
+	database = app.Flag("database", "Path to file containing the database configuration").Default("database.yml").String()
 
-	nPending, nFinished uint64
+	checkCmd             = app.Command("check", "Run a DNS check")
+	metricsListenAddress = checkCmd.Flag("web.listen-address", "Address on which to expose metrics and web interface").Default(":9000").String()
+	metricsPath          = checkCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
+	domains              = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
+	checker              check.Checker
+	finishedWg           sync.WaitGroup
+
+	dbConn *sql.DB
 )
 
-func main() {
-	databaseArg := flag.String("database", "database.yml", "Path to file containing the database configuration")
-	flag.StringVar(&domainArg, "domains", "domains.txt", "Path to file containing the domain list")
-	flag.StringVar(&geoDbPath, "geodb", "GeoLite2-City.mmdb", "Path to GeoDB database")
-	flag.StringVar(&referenceServer, "reference", referenceServer, "The nameserver that every other is compared with")
-	flag.IntVar(&workersCount, "workers", workersCount, "Number of worker routines")
-	flag.BoolVar(&verbose, "verbose", verbose, "Increase logging output")
-	flag.BoolVar(&syslog, "syslog", syslog, "Prepare logging for syslog (print to stdout, no timestamps)")
-	flag.BoolVar(&logStats, "stats", logStats, "Periodically log job statistics")
-	flag.Parse()
+func init() {
+	checkCmd.Flag("reference", "The nameserver that every other is compared with").Default("8.8.8.8").StringVar(&checker.ReferenceServer)
+	checkCmd.Flag("workers", "Number of worker routines").Default("32").UintVar(&checker.WorkersCount)
+	checkCmd.Flag("attempts", "Maximum number of attempts per query on timeouts").Default("3").UintVar(&checker.MaxAttempts)
+	checkCmd.Flag("timeout", "Timeout per dns query").Default("3s").DurationVar(&checker.DNSClient.ReadTimeout)
+	checkCmd.Flag("geodb", "Path to GeoDB database").Default("GeoLite2-City.mmdb").StringVar(&checker.GeoDbPath)
+}
 
-	if syslog {
+func main() {
+	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
+
+	if *syslog {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(0)
 	}
-
-	dnsClient.ReadTimeout = timeout
 
 	environment := os.Getenv("RAILS_ENV")
 	if environment == "" {
 		environment = "development"
 	}
 
-	// read domain list
-	if err := readDomains(domainArg); err != nil {
-		log.Fatalf("unable to read domain list: %v", err)
-	}
-
 	// load database configuration
-	connection = databasePath(*databaseArg, environment)
-
-	// check the GeoDB
-	location(referenceServer)
-
-	// Get results from the reference nameserver
-	res, _, err := resolveDomains(referenceServer)
-	if err != nil {
-		log.Fatalf("error resolving domains from reference server: %v", err)
-	}
-	expectedResults = res
-
-	// Start result writer
-	finishedWg.Add(1)
-	go resultWriter()
-
-	// Start workers
-	pendingWg.Add(workersCount)
-	for i := 0; i < workersCount; i++ {
-		go worker()
-	}
-
-	if logStats {
-		go jobStatLogger()
-	}
-	createJobs()
-
-	// wait for workers to finish
-	pendingWg.Wait()
-
-	close(finished)
-	finishedWg.Wait()
-}
-
-func createJobs() {
-	currentID := 0
-	batchSize := 1000
-	found := batchSize
+	connectionPath := databasePath(*database, environment)
 
 	// Open SQL connection
-	db, err := sql.Open("mysql", connection)
+	var err error
+	dbConn, err = sql.Open("mysql", connectionPath)
 	if err != nil {
-		log.Fatalf("cannot connect to database: %v", err)
+		log.Fatalln("cannot connect to database:", err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
 
-	for batchSize == found {
-		// Read the next batch
-		rows, err := db.Query("SELECT id, ip FROM nameservers WHERE id > ? LIMIT ?", currentID, batchSize)
-		if err != nil {
-			log.Fatalf("select batch failed: %v", err)
-		}
+	// Run the command
+	switch cmd {
+	case checkCmd.FullCommand():
+		err = runCheck()
 
-		found = 0
-		for rows.Next() {
-			j := new(job)
-
-			// get RawBytes from data
-			err = rows.Scan(&j.id, &j.address)
-			if err != nil {
-				log.Fatalf("scanning DB values failed: %v", err)
-			}
-			pending <- j
-			currentID = j.id
-			found++
-			if logStats {
-				atomic.AddUint64(&nPending, 1)
-			}
-		}
-		rows.Close()
 	}
-	close(pending)
-}
 
-func worker() {
-	for job := range pending {
-		executeJob(job)
-		finished <- job
-		if logStats {
-			atomic.AddUint64(&nFinished, 1)
-		}
-	}
-	pendingWg.Done()
-}
-
-func resultWriter() {
-	// Open SQL connection
-	db, err := sql.Open("mysql", connection)
+	// Check result
 	if err != nil {
-		log.Fatalf("cannot connect to database: %v", err)
-	}
-	defer db.Close()
-
-	stm, err := db.Prepare("UPDATE nameservers SET name=?, state=?, error=?, version=?, dnssec=?, checked_at=NOW(), country_id=?, city=? WHERE id=?")
-	if err != nil {
-		log.Fatalf("prepare statement failed: %v", err)
-	}
-	defer stm.Close()
-
-	for res := range finished {
-		if verbose {
-			log.Println(res)
-		}
-		stm.Exec(res.name, res.state, res.err, res.version, res.dnssec, res.country, res.city, res.id)
-	}
-
-	finishedWg.Done()
-}
-
-// consumes a job and writes the result in the given job
-func executeJob(job *job) {
-	// GeoDB lookup
-	job.country, job.city = location(job.address)
-
-	// Run the check
-	dnssec, err := check(job)
-	job.name = ptrName(job.address)
-
-	// query the bind version
-	if err == nil || err.Error() != "i/o timeout" {
-		job.version = version(job.address)
-	}
-
-	if err == nil {
-		job.state = "valid"
-		job.err = ""
-		job.dnssec = &dnssec
-	} else {
-		job.state = "invalid"
-		job.err = err.Error()
-	}
-}
-
-func jobStatLogger() {
-	nfLast := nFinished
-	ival := 30 * time.Second
-
-	for range time.NewTicker(ival).C {
-		np := atomic.LoadUint64(&nPending)
-		nf := atomic.LoadUint64(&nFinished)
-		rate := float64(nf-nfLast) / float64(ival/time.Second)
-		nfLast = nf
-
-		log.Printf("currently pending: %d, finished: %d, approx rate: %0.1f jobs/s", np-nf, nf, rate)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }

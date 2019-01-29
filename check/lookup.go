@@ -1,20 +1,24 @@
-package main
+package check
 
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/miekg/dns"
 )
 
-var dnsClient = &dns.Client{}
+func (checker *Checker) exchange(m *dns.Msg, address string) (r *dns.Msg, rtt time.Duration, err error) {
+	incrementMetric(&Metrics.Queries)
+	return checker.DNSClient.Exchange(m, address)
+}
 
 // Query the given nameserver for all domains
-func resolveDomains(nameserver string) (results resultMap, authenticated bool, err error) {
+func (checker *Checker) resolveDomains(nameserver string) (results resultMap, authenticated bool, err error) {
 	results = make(resultMap)
 
-	for _, domain := range domains {
-		result, authenticatedValue, err := resolve(nameserver, domain)
+	for _, domain := range checker.domains {
+		result, authenticatedValue, err := checker.resolve(nameserver, domain)
 		if err != nil {
 			return nil, false, err
 		}
@@ -26,25 +30,25 @@ func resolveDomains(nameserver string) (results resultMap, authenticated bool, e
 }
 
 // Query the given nameserver for a single domain
-func resolve(nameserver string, domain string) (records stringSet, authenticated bool, err error) {
+func (checker *Checker) resolve(nameserver string, domain string) (records stringSet, authenticated bool, err error) {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
 	m.AuthenticatedData = true
 
 	hostPort := net.JoinHostPort(nameserver, "53")
-	attempt := 1
+	attempt := uint(1)
 	result := &dns.Msg{}
 
 	// execute the query
 	for {
-		result, _, err = dnsClient.Exchange(m, hostPort)
+		result, _, err = checker.exchange(m, hostPort)
 		if err == nil {
 			// success
 			break
 		} else {
 			err = simplifyError(err)
-			if err.Error() != "i/o timeout" || attempt == maxAttempts {
+			if err.Error() != "i/o timeout" || attempt == checker.MaxAttempts {
 				// network problem or timeout
 				return
 			}
@@ -78,7 +82,7 @@ func resolve(nameserver string, domain string) (records stringSet, authenticated
 	return
 }
 
-func ptrName(address string) string {
+func (checker *Checker) ptrName(address string) string {
 	reverse, err := dns.ReverseAddr(address)
 	if err != nil {
 		return ""
@@ -89,7 +93,7 @@ func ptrName(address string) string {
 	m.SetQuestion(reverse, dns.TypePTR)
 
 	// execute the query
-	result, _, err := dnsClient.Exchange(m, net.JoinHostPort(referenceServer, "53"))
+	result, _, err := checker.exchange(m, net.JoinHostPort(checker.ReferenceServer, "53"))
 	if err != nil || result == nil || result.Rcode != dns.RcodeSuccess {
 		return ""
 	}
@@ -104,7 +108,7 @@ func ptrName(address string) string {
 }
 
 // Query a nameserver for the bind version
-func version(address string) string {
+func (checker *Checker) version(address string) string {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
 	m.Question = make([]dns.Question, 1)
@@ -115,7 +119,7 @@ func version(address string) string {
 	}
 
 	// Execute the query
-	r, _, _ := dnsClient.Exchange(m, net.JoinHostPort(address, "53"))
+	r, _, _ := checker.exchange(m, net.JoinHostPort(address, "53"))
 
 	// Valid response?
 	if r != nil && r.Rcode == dns.RcodeSuccess {
