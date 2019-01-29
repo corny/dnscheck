@@ -22,7 +22,7 @@ jobs:
 
       # check misspell
       - run: go get github.com/client9/misspell/cmd/misspell
-      - run: misspell -error .
+      - run: misspell -error check
 
 workflows:
   version: 2
