@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/corny/dnscheck/check"
+	"github.com/corny/dnscheck/export"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -23,6 +24,10 @@ var (
 	domains              = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
 	checker              check.Checker
 	finishedWg           sync.WaitGroup
+
+	exportCmd  = app.Command("export", "Export all DNS servers")
+	batchSize  = exportCmd.Flag("batch-size", "Batch size for fetching database records").Default("1000").Uint()
+	outputPath = exportCmd.Flag("output", "Path to output directory").Default(".").String()
 
 	dbConn *sql.DB
 )
@@ -64,6 +69,14 @@ func main() {
 	case checkCmd.FullCommand():
 		err = runCheck()
 
+	case exportCmd.FullCommand():
+		exporter := export.Exporter{
+			BatchSize:   *batchSize,
+			Debug:       *debug,
+			Connection:  dbConn,
+			Destination: *outputPath,
+		}
+		err = exporter.Run()
 	}
 
 	// Check result

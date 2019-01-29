@@ -1,6 +1,7 @@
 module github.com/corny/dnscheck
 
 require (
+	github.com/erikdubbelboer/gspt v0.0.0-20190125194910-e68493906b83
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/miekg/dns v1.1.3
