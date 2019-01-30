@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/corny/dnscheck/geoip"
 	"github.com/miekg/dns"
-	geoip2 "github.com/oschwald/geoip2-golang"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,8 @@ type Checker struct {
 
 	DNSClient dns.Client
 
-	geoip     *geoip2.Reader
+	geoip *geoip.Database
+
 	pending   chan *Job
 	finished  chan *Job
 	pendingWg sync.WaitGroup
@@ -40,16 +41,12 @@ func (checker *Checker) Start() error {
 	if checker.GeoDbPath == "" {
 		return errors.New("GeoDbPath missing")
 	}
-
-	// Get results from the reference nameserver
-	res, _, err := checker.resolveDomains(checker.ReferenceServer)
-	if err != nil {
-		return errors.Wrapf(err, "error resolving domains from reference server")
+	if err := checker.UpdateExectations(); err != nil {
+		return errors.New("unable to query reference nameserver")
 	}
-	checker.expectedResults = res
 
 	// Open the GeoDB
-	geoip, err := geoip2.Open(checker.GeoDbPath)
+	geoip, err := geoip.New(checker.GeoDbPath)
 	if err != nil {
 		return err
 	}
@@ -70,6 +67,17 @@ func (checker *Checker) Start() error {
 // Stop closes input channel and waits for workers to finish
 func (checker *Checker) Stop() {
 	close(checker.pending)
+	checker.geoip.Close()
 	checker.pendingWg.Wait()
 	close(checker.finished)
+}
+
+// UpdateExectations checks the domain list against the references nameserver and saves the responses
+func (checker *Checker) UpdateExectations() error {
+	res, _, err := checker.resolveDomains(checker.ReferenceServer)
+	if err != nil {
+		return errors.Wrapf(err, "error resolving domains from reference server")
+	}
+	checker.expectedResults = res
+	return nil
 }

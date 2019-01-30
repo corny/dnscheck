@@ -1,5 +1,10 @@
 package check
 
+import (
+	"log"
+	"net"
+)
+
 // Enqueue adds a new job
 func (checker *Checker) Enqueue(id int, address string) {
 	checker.pending <- &Job{ID: id, Address: address}
@@ -23,7 +28,13 @@ func (checker *Checker) worker() {
 // consumes a job and writes the result in the given job
 func (checker *Checker) executeJob(job *Job) {
 	// GeoDB lookup
-	job.Country, job.City = checker.location(job.Address)
+	var err error
+
+	job.Country, job.City, err = checker.geoip.City(net.ParseIP(job.Address))
+	if err != nil {
+		log.Printf("cannot resolve IP address to location %v: %s", job.Address, err)
+		return
+	}
 
 	// Run the check
 	dnssec, err := checker.check(job)

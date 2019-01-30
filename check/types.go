@@ -1,5 +1,6 @@
 package check
 
+// Job represents a nameserver check
 type Job struct {
 	ID      int
 	Address string
