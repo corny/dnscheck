@@ -52,7 +52,7 @@ func TestPtrName(t *testing.T) {
 	assert := assert.New(t)
 	result := testChecker.ptrName("8.8.8.8")
 
-	assert.Equal("google-public-dns-a.google.com.", result)
+	assert.Equal("dns.google.", result)
 }
 
 func TestVersion(t *testing.T) {
