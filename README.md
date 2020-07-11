@@ -1,7 +1,8 @@
 DNS Check
 =========
 
-[![CircleCI](https://circleci.com/gh/corny/dnscheck.svg?style=shield)](https://circleci.com/gh/corny/dnscheck)
+[![Build Status](https://github.com/corny/dnscheck/workflows/build/badge.svg?branch=master)](https://github.com/corny/dnscheck/actions)
+[![Codecov](https://codecov.io/gh/corny/dnscheck/branch/master/graph/badge.svg)](https://codecov.io/gh/corny/dnscheck)
 
 This code powers the DNS check of the [Public DNS list](http://public-dns.info) service.
 It is written in [Go](http://golang.org/) and it scales very well.
