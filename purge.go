@@ -14,7 +14,7 @@ func runPurge() error {
 	failed := false
 
 	// purge checks older than N days
-	res, err := dbConn.Exec("DELETE FROM nameserver_checks WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)", maxCheckAge)
+	res, err := dbConn.Exec(fmt.Sprintf("DELETE FROM nameserver_checks WHERE created_at < NOW() - INTERVAL '%d day'", *maxCheckAge))
 	if err != nil {
 		log.Println(err)
 		failed = true
@@ -24,7 +24,7 @@ func runPurge() error {
 	}
 
 	// purge invalid nameservers checked within the last 7 days that has been invalid for N days
-	res, err = dbConn.Exec("DELETE FROM nameservers WHERE state='invalid' AND checked_at > DATE_SUB(NOW(), INTERVAL 7 DAY) AND state_changed_at < DATE_SUB(NOW(), INTERVAL ? DAY)", maxCheckAge)
+	res, err = dbConn.Exec(fmt.Sprintf("DELETE FROM nameservers WHERE status = TRUE AND checked_at > current_date - 7 AND status_changed_at < NOW() - INTERVAL '%d day'", *maxCheckAge))
 	if err != nil {
 		log.Println(err)
 		failed = true

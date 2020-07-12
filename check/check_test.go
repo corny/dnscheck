@@ -1,6 +1,7 @@
 package check
 
 import (
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,14 +11,14 @@ func TestCheckResult(t *testing.T) {
 	assert := assert.New(t)
 	domains := []string{"example.com"}
 
-	correctAddr := make(stringSet)
-	correctAddr.add("1.2.3.4")
+	correctAddr := ipSet{}
+	correctAddr.add(net.ParseIP("1.2.3.4"))
 	correctMap := make(resultMap)
 	correctMap["example.com"] = correctAddr
 
-	incorrectAddr := make(stringSet)
-	incorrectAddr.add("23.0.0.1")
-	incorrectAddr.add("23.0.0.2")
+	incorrectAddr := ipSet{}
+	incorrectAddr.add(net.ParseIP("23.0.0.1"))
+	incorrectAddr.add(net.ParseIP("23.0.0.2"))
 	incorrectMap := make(resultMap)
 	incorrectMap["example.com"] = incorrectAddr
 
@@ -34,12 +35,12 @@ func TestCheckResultEmpty(t *testing.T) {
 	assert := assert.New(t)
 	domains := []string{"example.com"}
 
-	correctAddr := make(stringSet)
-	correctAddr.add("1.2.3.4")
+	correctAddr := ipSet{}
+	correctAddr.add(net.ParseIP("1.2.3.4"))
 	correctMap := make(resultMap)
 	correctMap["example.com"] = correctAddr
 
-	incorrectAddr := make(stringSet)
+	incorrectAddr := ipSet{}
 	incorrectMap := make(resultMap)
 	incorrectMap["example.com"] = incorrectAddr
 

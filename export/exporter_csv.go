@@ -1,6 +1,8 @@
 package export
 
-import "encoding/csv"
+import (
+	"encoding/csv"
+)
 
 type csvExporter struct {
 	*nsExporter
@@ -38,9 +40,11 @@ func (e *csvExporter) write(ns *Nameserver) error {
 		fields[i] = ns.GetString(field)
 	}
 
-	return e.writer.Write(fields)
+	e.writer.Write(fields)
+	e.writer.Flush()
+	return nil
 }
 
 func (e *csvExporter) convertNS(_ *Nameserver) ([]byte, error) {
-	return nil, nil
+	panic("should not be called")
 }

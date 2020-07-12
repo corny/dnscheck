@@ -3,26 +3,61 @@ package check
 import (
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/miekg/dns"
 )
 
-func (checker *Checker) exchange(m *dns.Msg, address string) (r *dns.Msg, rtt time.Duration, err error) {
+var addressTypes = []uint16{dns.TypeA, dns.TypeAAAA}
+
+func (checker *Checker) exchange(m *dns.Msg, serverAddress string) (r *dns.Msg, rtt time.Duration, err error) {
 	incrementMetric(&Metrics.Queries)
-	return checker.DNSClient.Exchange(m, address)
+	return checker.DNSClient.Exchange(m, serverAddress)
 }
 
-// Query the given nameserver for all domains
+// exchange message with the reference nameserver
+func (checker *Checker) exchangeReference(m *dns.Msg) (r *dns.Msg, rtt time.Duration, err error) {
+	return checker.exchange(m, net.JoinHostPort(checker.ReferenceServer, "53"))
+}
+
+// resolves the fqdn and returns all IP addresses
+func (checker *Checker) resolveAddresses(fqdn string) (result []net.IP, err error) {
+
+	mtx := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(addressTypes))
+
+	for _, qType := range addressTypes {
+		go func() {
+			resResult, _, resErr := checker.resolve(checker.ReferenceServer, fqdn, qType)
+			mtx.Lock()
+
+			if resErr != nil {
+				err = resErr
+			} else {
+				result = append(result, resResult...)
+			}
+
+			mtx.Unlock()
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	return
+}
+
+// Query the given nameserver for all domains (A records)
 func (checker *Checker) resolveDomains(nameserver string) (results resultMap, authenticated bool, err error) {
 	results = make(resultMap)
 
 	for _, domain := range checker.domains {
-		result, authenticatedValue, err := checker.resolve(nameserver, domain)
+		result, authenticatedValue, err := checker.resolve(nameserver, domain, dns.TypeA)
 		if err != nil {
 			return nil, false, err
 		}
-		results[domain] = result
+		results[domain] = ipSet{result}
 		authenticated = authenticated || authenticatedValue
 	}
 
@@ -30,10 +65,10 @@ func (checker *Checker) resolveDomains(nameserver string) (results resultMap, au
 }
 
 // Query the given nameserver for a single domain
-func (checker *Checker) resolve(nameserver string, domain string) (records stringSet, authenticated bool, err error) {
+func (checker *Checker) resolve(nameserver string, domain string, qType uint16) (records []net.IP, authenticated bool, err error) {
 	m := &dns.Msg{}
 	m.RecursionDesired = true
-	m.SetQuestion(dns.Fqdn(domain), dns.TypeA)
+	m.SetQuestion(dns.Fqdn(domain), qType)
 	m.AuthenticatedData = true
 
 	hostPort := net.JoinHostPort(nameserver, "53")
@@ -70,18 +105,21 @@ func (checker *Checker) resolve(nameserver string, domain string) (records strin
 	}
 
 	authenticated = result.AuthenticatedData
-	records = make(stringSet)
 
 	// Add addresses to set
 	for _, a := range result.Answer {
-		if record, ok := a.(*dns.A); ok {
-			records.add(record.A.String())
+		switch record := a.(type) {
+		case *dns.A:
+			records = append(records, record.A)
+		case *dns.AAAA:
+			records = append(records, record.AAAA)
 		}
 	}
 
 	return
 }
 
+// ptrName does a reverse lookup
 func (checker *Checker) ptrName(address string) string {
 	reverse, err := dns.ReverseAddr(address)
 	if err != nil {

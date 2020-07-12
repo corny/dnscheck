@@ -1,8 +1,10 @@
 package check
 
 import (
+	"net"
 	"testing"
 
+	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,8 +13,8 @@ var (
 	testChecker     = &Checker{ReferenceServer: referenceServer}
 )
 
-func resolve(server, query string) (records stringSet, authenticated bool, err error) {
-	return testChecker.resolve(server, query)
+func resolve(server, query string) (records []net.IP, authenticated bool, err error) {
+	return testChecker.resolve(server, query, dns.TypeA)
 }
 
 func TestExistent(t *testing.T) {

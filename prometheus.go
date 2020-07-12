@@ -1,12 +1,8 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/corny/dnscheck/check"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -15,12 +11,6 @@ var (
 	resultDesc    = prometheus.NewDesc(metricsPrefix+"result", "Result of checks", []string{"result"}, nil)
 	queriesDesc   = prometheus.NewDesc(metricsPrefix+"queries", "Total number of DNS queries", nil, nil)
 )
-
-func startMetrics() {
-	prometheus.MustRegister(&metricsExporter{})
-	http.Handle(*metricsPath, promhttp.Handler())
-	log.Fatal(http.ListenAndServe(*metricsListenAddress, nil))
-}
 
 type metricsExporter struct{}
 

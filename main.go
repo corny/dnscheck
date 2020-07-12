@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
+	"os/signal"
+	"syscall"
+
+	_ "github.com/lib/pq"
 
 	"github.com/corny/dnscheck/check"
 	"github.com/corny/dnscheck/export"
@@ -16,14 +19,15 @@ var (
 	app      = kingpin.New("dnscheck", "A public dns checker")
 	debug    = app.Flag("debug", "Enable debug mode.").Bool()
 	syslog   = app.Flag("syslog", "Prepare logging for syslog (print to stdout, no timestamps)").Bool()
-	database = app.Flag("database", "Path to file containing the database configuration").Default("database.yml").String()
+	database = app.Flag("database", "Data source name (DSN) for the PostgreSQL database, defaults to environment variable DSN").Default(defaultDSN()).String()
 
-	checkCmd             = app.Command("check", "Run a DNS check")
-	metricsListenAddress = checkCmd.Flag("web.listen-address", "Address on which to expose metrics and web interface").Default(":9000").String()
-	metricsPath          = checkCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
-	domains              = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
-	checker              check.Checker
-	finishedWg           sync.WaitGroup
+	checkCmd      = app.Command("check", "Run DNS checks continuously")
+	listenAddress = checkCmd.Flag("web.listen-address", "Listening address for the web interface").Default(":8000").String()
+	metricsPath   = checkCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
+	allowOrigins  = checkCmd.Flag("web.allow-origin", "Allowed origins for CORS").Default("http://localhost:3000").Strings()
+	domains       = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
+	checkInterval = checkCmd.Flag("interval", "Check interval").Default("1h").Duration()
+	checker       check.Checker
 
 	exportCmd  = app.Command("export", "Export all DNS servers")
 	batchSize  = exportCmd.Flag("batch-size", "Batch size for fetching database records").Default("1000").Uint()
@@ -35,12 +39,22 @@ var (
 	dbConn *sql.DB
 )
 
+func defaultDSN() string {
+	dsn := os.Getenv("DSN")
+	if dsn == "" {
+		dsn = "host=/var/run/postgresql dbname=publicdns"
+	}
+
+	return dsn
+}
+
 func init() {
 	checkCmd.Flag("reference", "The nameserver that every other is compared with").Default("8.8.8.8").StringVar(&checker.ReferenceServer)
 	checkCmd.Flag("workers", "Number of worker routines").Default("32").UintVar(&checker.WorkersCount)
 	checkCmd.Flag("attempts", "Maximum number of attempts per query on timeouts").Default("3").UintVar(&checker.MaxAttempts)
 	checkCmd.Flag("timeout", "Timeout per dns query").Default("3s").DurationVar(&checker.DNSClient.ReadTimeout)
-	checkCmd.Flag("geodb", "Path to GeoDB database").Default("GeoLite2-City.mmdb").StringVar(&checker.GeoDbPath)
+	checkCmd.Flag("geodb-city", "Path to GeoDB city database").Default("/var/lib/GeoIP/GeoLite2-City.mmdb").StringVar(&checker.GeoDbPathCity)
+	checkCmd.Flag("geodb-asn", "Path to GeoDB asn database").Default("/var/lib/GeoIP/GeoLite2-ASN.mmdb").StringVar(&checker.GeoDbPathASN)
 }
 
 func main() {
@@ -49,19 +63,13 @@ func main() {
 	if *syslog {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(0)
+	} else {
+		log.SetFlags(log.Lshortfile)
 	}
-
-	environment := os.Getenv("RAILS_ENV")
-	if environment == "" {
-		environment = "development"
-	}
-
-	// load database configuration
-	connectionPath := databasePath(*database, environment)
 
 	// Open SQL connection
 	var err error
-	dbConn, err = sql.Open("mysql", connectionPath)
+	dbConn, err = sql.Open("postgres", *database)
 	if err != nil {
 		log.Fatalln("cannot connect to database:", err)
 	}
@@ -70,7 +78,20 @@ func main() {
 	// Run the command
 	switch cmd {
 	case checkCmd.FullCommand():
-		err = runCheck()
+		startHTTP()
+
+		go func() {
+			err := startChecks()
+			if err != nil {
+				log.Panicln(err)
+			}
+		}()
+
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		log.Printf("received %v, shutting down", <-sigs)
+
+		stopChecks()
 
 	case exportCmd.FullCommand():
 		exporter := export.Exporter{

@@ -1,18 +1,22 @@
 package check
 
+import (
+	"net"
+
+	"github.com/oschwald/geoip2-golang"
+)
+
 // Job represents a nameserver check
 type Job struct {
 	ID      int
-	Address string
+	Address net.IP
 	Name    string
 	Version string
-	State   string
-	Err     string
-	Country string
-	City    string
+	Status  bool
+	Error   string
+	City    *geoip2.City
+	ASN     *geoip2.ASN
 	Dnssec  *bool
 }
 
-type stringSet map[string]struct{}
-
-type resultMap map[string]stringSet
+type resultMap map[string]ipSet

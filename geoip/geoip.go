@@ -34,17 +34,20 @@ func New(path string) (*Database, error) {
 	return db, nil
 }
 
-// City looks up ISO code and City by IP address
-func (db *Database) City(ip net.IP) (isocode string, city string, err error) {
+// City looks up the city
+func (db *Database) City(ip net.IP) (*geoip2.City, error) {
 	db.mtx.RLock()
-	record, err := db.reader.City(ip)
-	db.mtx.RUnlock()
+	defer db.mtx.RUnlock()
 
-	if err != nil {
-		return "", "", err
-	}
+	return db.reader.City(ip)
+}
 
-	return record.Country.IsoCode, record.City.Names["en"], nil
+// ASN looks up the ASN
+func (db *Database) ASN(ip net.IP) (*geoip2.ASN, error) {
+	db.mtx.RLock()
+	defer db.mtx.RUnlock()
+
+	return db.reader.ASN(ip)
 }
 
 // open (re)opens the database

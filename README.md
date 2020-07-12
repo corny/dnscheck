@@ -9,35 +9,17 @@ It is written in [Go](http://golang.org/) and it scales very well.
 
 ## Dependencies
 
-* [Go-MySQL-Driver](https://github.com/go-sql-driver/mysql)
-* [Go-YAML v2](https://gopkg.in/yaml.v2)
+* [Go postgres driver](https://github.com/lib/pq)
 * [DNS library by Miek Gieben](https://github.com/miekg/dns)
 * [MaxMind DB Reader for Go](https://github.com/oschwald/maxminddb-golang)
 * GeoLite2 by MaxMind, available from http://www.maxmind.com
-* A MariaDB/MySQL database
+* A PostgreSQL database
 
 ## Configuration
 
 ### Database configuration
 
-The program is intended to be part of a Rails application.
-So you need a `database.yml` with the credentials for your database.
-
-#### Using a socket
-
-    development:
-      socket: /var/run/mysqld/mysqld.sock
-      database: nameservers_development
-      username: root
-      password:
-
-#### Using a tcp connection
-
-    production:
-      host: 127.0.0.1
-      database: nameservers
-      username: nameservers
-      password: topsecret
+The schema of the database connection string is documented at the [pq package documentation](https://pkg.go.dev/github.com/lib/pq).
 
 ### Database scheme
 
@@ -57,7 +39,6 @@ All of the domains should resolve to the same IP addresses (not location based /
 
 ## Usage
 
-Replace `env` with your environment name (e.g. development or production) and pass the path to your database.yml.
-`dnscheck -h` prints a list of all supported arguments.
+`dnscheck -h` prints a list of all supported arguments. Example:
 
-    RAILS_ENV=env dnscheck check --domains path/to/domains --database path/to/database.yml --geodb path/to/GeoLite2-City.mmdb
+    dnscheck check --domains path/to/domains.txt --database "host=/var/run/postgresql dbname=publicdns" --geodb path/to/GeoLite2-City.mmdb

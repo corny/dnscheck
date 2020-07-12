@@ -5,7 +5,7 @@ import (
 )
 
 func (checker *Checker) check(job *Job) (bool, error) {
-	solved, dnssec, err := checker.resolveDomains(job.Address)
+	solved, dnssec, err := checker.resolveDomains(job.Address.String())
 
 	if err != nil {
 		return dnssec, err
@@ -19,8 +19,8 @@ func checkResult(domains []string, expectedMap resultMap, solvedMap resultMap) e
 	for _, domain := range domains {
 		expected := expectedMap[domain]
 		result := solvedMap[domain]
-		if !expected.equals(result) {
-			if len(result) == 0 {
+		if !expected.equals(&result) {
+			if len(result.list) == 0 {
 				// empty result means NXDOMAIN
 				return fmt.Errorf("Unexpected result for %s: NXDOMAIN", domain)
 			}

@@ -3,6 +3,7 @@ package export
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -13,9 +14,11 @@ import (
 // Nameserver describes a database record.
 type Nameserver struct {
 	ID          int        `json:"-"`
-	State       string     `json:"-"`
-	IP          string     `json:"ip"`
+	Status      bool       `json:"-"`
+	Address     string     `json:"ip"`
 	Name        *string    `json:"name"`
+	ASNumber    *uint      `json:"as_number"`
+	ASOrg       *string    `json:"as_org"`
 	Country     *string    `json:"country_id"`
 	City        *string    `json:"city"`
 	Version     *string    `json:"version"`
@@ -29,7 +32,7 @@ type Nameserver struct {
 // IsValid tells you whether this Nameserver is valid (i.e. not "new"
 // or "failed").
 func (ns *Nameserver) IsValid() bool {
-	return ns.State == "valid"
+	return ns.Status
 }
 
 // GetString returns a string representation of the attribute given.
@@ -42,11 +45,17 @@ func (ns *Nameserver) GetString(attr string) string {
 	}
 	var res string
 	switch attr {
-	case "ip":
-		res = ns.IP
+	case "ip_address":
+		res = ns.Address
 	case "name":
 		res = nullStr(ns.Name)
-	case "country_id":
+	case "as_number":
+		if ns.ASNumber != nil {
+			res = strconv.Itoa(int(*ns.ASNumber))
+		}
+	case "as_org":
+		res = nullStr(ns.ASOrg)
+	case "country_code":
 		res = nullStr(ns.Country)
 	case "city":
 		res = nullStr(ns.City)
@@ -72,6 +81,8 @@ func (ns *Nameserver) GetString(attr string) string {
 		}
 	case "created_at":
 		res = ns.CreatedAt.Format(time.RFC3339)
+	default:
+		log.Panicln("invalid attribute:", attr)
 	}
 	return res
 }
@@ -79,9 +90,11 @@ func (ns *Nameserver) GetString(attr string) string {
 var (
 	// these fields are exported
 	nameserverFields = []string{
-		"ip",
+		"ip_address",
 		"name",
-		"country_id",
+		"as_number",
+		"as_org",
+		"country_code",
 		"city",
 		"version",
 		"error",
@@ -95,7 +108,7 @@ var (
 	stmtNameserverSlice *sql.Stmt
 )
 
-const queryNameserverSlice = "SELECT `id`, `state`, `%s` FROM nameservers WHERE `id` > ? ORDER BY `id` ASC LIMIT ?"
+const queryNameserverSlice = `SELECT "id", "status", "%s" FROM nameservers WHERE "id" > $1 ORDER BY "id" ASC LIMIT $2`
 
 // Each iterates over all Nameserver records and calls the callback for
 // each. If the callback returns an error, the iteration stops and that
@@ -109,7 +122,7 @@ func Each(conn *sql.DB, batchSize uint, callback func(*Nameserver) error) (err e
 	)
 
 	if stmtNameserverSlice == nil {
-		q := fmt.Sprintf(queryNameserverSlice, strings.Join(nameserverFields, "`, `"))
+		q := fmt.Sprintf(queryNameserverSlice, strings.Join(nameserverFields, `", "`))
 		stmtNameserverSlice, err = conn.Prepare(strings.TrimSpace(q))
 		if err != nil {
 			return
@@ -146,7 +159,10 @@ func Each(conn *sql.DB, batchSize uint, callback func(*Nameserver) error) (err e
 func scanRow(row *sql.Rows) (*Nameserver, error) {
 	var (
 		id                int
-		state, ip         string
+		status            bool
+		address           string
+		asNumber          sql.NullInt32
+		asOrg             sql.NullString
 		name, ver, errStr sql.NullString
 		ccode, city       sql.NullString
 		dnssec            sql.NullBool
@@ -154,15 +170,26 @@ func scanRow(row *sql.Rows) (*Nameserver, error) {
 		chkTime, crtTime  mysql.NullTime
 	)
 
-	err := row.Scan(&id, &state, &ip, &name, &ccode, &city, &ver, &errStr, &dnssec, &rel, &chkTime, &crtTime)
+	err := row.Scan(&id, &status, &address, &name, &asNumber, &asOrg, &ccode, &city, &ver, &errStr, &dnssec, &rel, &chkTime, &crtTime)
 	if err != nil {
 		return nil, err
 	}
 
-	r := &Nameserver{ID: id, State: state, IP: ip}
+	r := &Nameserver{
+		ID:      id,
+		Address: address,
+		Status:  status,
+	}
 
 	if name.Valid {
 		r.Name = &name.String
+	}
+	if asNumber.Valid {
+		v := uint(asNumber.Int32)
+		r.ASNumber = &v
+	}
+	if asOrg.Valid {
+		r.ASOrg = &asOrg.String
 	}
 	if ccode.Valid {
 		s := strings.ToUpper(ccode.String)

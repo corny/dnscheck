@@ -15,7 +15,8 @@ type Checker struct {
 	ReferenceServer string
 	MaxAttempts     uint
 	Timeout         time.Duration
-	GeoDbPath       string
+	GeoDbPathCity   string
+	GeoDbPathASN    string
 
 	// map of checked domains and their results from the reference server
 	expectedResults resultMap
@@ -25,7 +26,8 @@ type Checker struct {
 
 	DNSClient dns.Client
 
-	geoip *geoip.Database
+	geoipCity *geoip.Database
+	geoipASN  *geoip.Database
 
 	pending   chan *Job
 	finished  chan *Job
@@ -38,20 +40,26 @@ func (checker *Checker) Start() error {
 	if checker.ReferenceServer == "" {
 		return errors.New("reference nameserver missing")
 	}
-	if checker.GeoDbPath == "" {
-		return errors.New("GeoDbPath missing")
-	}
 	if err := checker.UpdateExectations(); err != nil {
 		return errors.New("unable to query reference nameserver")
 	}
 
-	// Open the GeoDB
-	geoip, err := geoip.New(checker.GeoDbPath)
-	if err != nil {
-		return err
+	if path := checker.GeoDbPathCity; path != "" {
+		db, err := geoip.New(path)
+		if err != nil {
+			return err
+		}
+		checker.geoipCity = db
 	}
 
-	checker.geoip = geoip
+	if path := checker.GeoDbPathASN; path != "" {
+		db, err := geoip.New(path)
+		if err != nil {
+			return err
+		}
+		checker.geoipASN = db
+	}
+
 	checker.pending = make(chan *Job, 100)
 	checker.finished = make(chan *Job, 100)
 
@@ -67,7 +75,15 @@ func (checker *Checker) Start() error {
 // Stop closes input channel and waits for workers to finish
 func (checker *Checker) Stop() {
 	close(checker.pending)
-	checker.geoip.Close()
+
+	if checker.geoipCity != nil {
+		checker.geoipCity.Close()
+	}
+
+	if checker.geoipASN != nil {
+		checker.geoipASN.Close()
+	}
+
 	checker.pendingWg.Wait()
 	close(checker.finished)
 }

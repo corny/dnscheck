@@ -18,5 +18,5 @@ func newTextExporter(tpl string) (insExporter, error) {
 }
 
 func (e *textExporter) convertNS(ns *Nameserver) ([]byte, error) {
-	return []byte(ns.IP), nil
+	return []byte(ns.Address), nil
 }
