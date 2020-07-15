@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/corny/dnscheck/bogon"
 	"github.com/corny/dnscheck/check"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -50,6 +51,11 @@ func (submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	address := net.ParseIP(addrStr)
 	if address == nil {
 		http.Error(w, "invalid IP address", http.StatusUnprocessableEntity)
+		return
+	}
+
+	if bogon.IsBogon(address) {
+		http.Error(w, "bogon IP address", http.StatusUnprocessableEntity)
 		return
 	}
 
