@@ -38,7 +38,7 @@ func TestAuthenticated(t *testing.T) {
 
 	assert.Nil(err)
 	assert.True(authenticated)
-	assert.Len(result, 1)
+	assert.GreaterOrEqual(len(result), 1)
 }
 
 func TestUnreachable(t *testing.T) {
