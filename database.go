@@ -2,15 +2,15 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"log"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"gopkg.in/yaml.v2"
 )
 
 func databasePath(file string, environment string) string {
-	yamlFile, err := ioutil.ReadFile(file)
+	yamlFile, err := os.ReadFile(file)
 	if err != nil {
 		log.Fatalf("cannot read %q: %v", file, err)
 	}
