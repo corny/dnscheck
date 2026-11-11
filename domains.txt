@@ -1,6 +1,14 @@
-# a comment
+# Every nameserver must return the same A records as the reference
+# nameserver for all domains below. The domains must not use GeoDNS.
 
-example.com
-non-existent.example.com
+# domains that are blocked or manipulated by some resolvers
 wikileaks.org
-rotten.com
+archive.org
+thepiratebay.org
+youporn.com
+
+# signed with DNSSEC, to detect DNSSEC validation (AD bit)
+www.dnssec-tools.org
+
+# must return NXDOMAIN (.invalid is reserved by RFC 6761)
+does-not-exist.invalid

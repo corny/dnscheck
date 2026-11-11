@@ -31,9 +31,11 @@ Create a list of domains to query the nameservers for.
 You should include at least one domain that does not exist.
 All of the domains should resolve to the same IP addresses (not location based / GeoIP).
 
-    non-existent.example.com
     wikileaks.org
-    rotten.com
+    www.dnssec-tools.org
+    does-not-exist.invalid
+
+See [domains.txt](domains.txt) for the list in use.
 
 ## Usage
 

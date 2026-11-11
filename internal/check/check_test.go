@@ -55,5 +55,5 @@ func TestReadDomains(t *testing.T) {
 	err := checker.ReadDomains("../../domains.txt")
 
 	assert.NoError(err)
-	assert.Len(checker.domains, 4)
+	assert.Len(checker.domains, 6)
 }
