@@ -12,9 +12,14 @@ import (
 	geoip2 "github.com/oschwald/geoip2-golang/v2"
 )
 
+// reloadInterval is the interval in which the database file is checked for
+// changes.
+var reloadInterval = time.Minute
+
 // Database is a wrapper around the GeoIP2 database
 type Database struct {
 	path     string
+	interval time.Duration // see reloadInterval
 	reader   *geoip2.Reader
 	modTime  time.Time
 	mtx      sync.RWMutex
@@ -24,7 +29,8 @@ type Database struct {
 // New opens a GeoIP database
 func New(path string) (*Database, error) {
 	db := &Database{
-		path: path,
+		path:     path,
+		interval: reloadInterval,
 	}
 
 	if err := db.open(); err != nil {
@@ -100,16 +106,23 @@ func (db *Database) Close() error {
 	return nil
 }
 
-// watcher runs periodically check() until shutdown
+// watcher runs check() periodically until shutdown
 func (db *Database) watcher() {
-	select {
-	case <-time.After(time.Minute):
-		db.check()
-	case <-db.shutdown:
-		db.mtx.Lock()
-		db.reader.Close()
-		db.mtx.Unlock()
-		return
+	ticker := time.NewTicker(db.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := db.check(); err != nil {
+				log.Println("GeoIP database reload failed:", err)
+			}
+		case <-db.shutdown:
+			db.mtx.Lock()
+			db.reader.Close()
+			db.mtx.Unlock()
+			return
+		}
 	}
 }
 
