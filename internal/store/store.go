@@ -63,7 +63,7 @@ type idAddress struct {
 
 // addressBatch reads up to batchSize nameservers with an ID greater than afterID.
 func (s *Store) addressBatch(afterID, batchSize int) ([]idAddress, error) {
-	rows, err := s.db.Query("SELECT id, ip_address FROM nameservers WHERE id > $1 LIMIT $2", afterID, batchSize)
+	rows, err := s.db.Query("SELECT id, ip_address FROM nameservers WHERE id > $1 ORDER BY id LIMIT $2", afterID, batchSize)
 	if err != nil {
 		return nil, fmt.Errorf("select batch failed: %w", err)
 	}

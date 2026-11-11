@@ -38,7 +38,16 @@ go vet ./...
 go test ./...
 ```
 
-Some tests in `check/` query public DNS servers and need network access. `go test -short ./...` skips them; CI runs the full suite. Always say so when a test is red or was skipped, never count it as a success.
+Some tests in `check/` query public DNS servers and need network access. `go test -short ./...` skips them; CI runs the full suite.
+
+Database tests in `internal/store` run against the PostgreSQL database given by `TEST_DSN` and are skipped if it is unset. They drop and recreate all tables, so never point `TEST_DSN` at a database with real data. Locally:
+
+```sh
+createdb dnscheck_test
+TEST_DSN="host=/tmp dbname=dnscheck_test" go test -race ./...
+```
+
+CI starts a PostgreSQL service container for these tests. Always say so when a test is red or was skipped, never count it as a success.
 
 Local run (`postgres` branch):
 
