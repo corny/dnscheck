@@ -3,6 +3,7 @@ package check
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
@@ -59,6 +60,25 @@ func TestUnreachable(t *testing.T) {
 
 	// "connection refused" on Linux, "i/o timeout" on macOS
 	assert.Error(t, err)
+}
+
+func TestTimeoutWithoutMaxAttempts(t *testing.T) {
+	checker := &Checker{}
+	checker.DNSClient.Timeout = 100 * time.Millisecond
+
+	done := make(chan error, 1)
+	go func() {
+		// 192.0.2.1 (TEST-NET-1) never answers
+		_, _, err := checker.resolve("192.0.2.1", "example.com", dns.TypeA)
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		assert.Error(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("resolve does not give up when MaxAttempts is zero")
+	}
 }
 
 func TestPtrName(t *testing.T) {

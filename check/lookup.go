@@ -83,7 +83,7 @@ func (checker *Checker) resolve(nameserver string, domain string, qType uint16) 
 			break
 		} else {
 			err = simplifyError(err)
-			if err.Error() != "i/o timeout" || attempt == checker.MaxAttempts {
+			if err.Error() != "i/o timeout" || attempt >= checker.MaxAttempts {
 				// network problem or timeout
 				return
 			}
