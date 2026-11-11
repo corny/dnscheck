@@ -11,20 +11,19 @@ import (
 	"github.com/corny/dnscheck/internal/store"
 )
 
+// Exporter writes all nameservers into files: nameservers-all contains all
+// nameservers, nameservers the valid ones and <country code> the valid ones
+// of each country.
 type Exporter struct {
 	Destination string // Destination is the output directory
 	Debug       bool
 	Store       *store.Store
 	BatchSize   uint
-	queue       map[string]*Writer
 }
 
-// Run starts the export and wait until it is finished
+// Run exports all nameservers. The existing files are only replaced if the
+// export succeeds.
 func (ex *Exporter) Run() error {
-	if ex.queue != nil {
-		return errors.New("already started")
-	}
-
 	if ex.BatchSize < 1 {
 		return errors.New("batch size too small")
 	}
@@ -37,38 +36,42 @@ func (ex *Exporter) Run() error {
 		return fmt.Errorf("invalid destination %q: %w", ex.Destination, err)
 	}
 
-	ex.queue = make(map[string]*Writer)
+	writers := make(map[string]*Writer)
 	t0 := time.Now()
 	var n uint
 
-	err := ex.Store.EachNameserver(ex.BatchSize, func(ns *store.Nameserver) (e error) {
-		if e = ex.exportEntry("nameservers-all", ns); e != nil {
-			return
+	err := ex.Store.EachNameserver(ex.BatchSize, func(ns *store.Nameserver) error {
+		if err := ex.write(writers, "nameservers-all", ns); err != nil {
+			return err
 		}
 		if ns.IsValid() {
-			if e = ex.exportEntry("nameservers", ns); e != nil {
-				return
+			if err := ex.write(writers, "nameservers", ns); err != nil {
+				return err
 			}
 			if ns.Country != nil && *ns.Country != "" {
-				if e = ex.exportEntry(strings.ToLower(*ns.Country), ns); e != nil {
-					return
+				if err := ex.write(writers, strings.ToLower(*ns.Country), ns); err != nil {
+					return err
 				}
 			}
 		}
 		n++
 		return nil
 	})
-
 	if err != nil {
-		panic(err)
+		for _, w := range writers {
+			w.Abort()
+		}
+		return err
 	}
 
-	for name, q := range ex.queue {
-		if err = q.Close(); err != nil {
-			panic(err)
+	var errs []error
+	for name, w := range writers {
+		if err := w.Close(); err != nil {
+			errs = append(errs, fmt.Errorf("%s: %w", name, err))
+			continue
 		}
 		if ex.Debug || strings.HasPrefix(name, "nameservers") {
-			log.Printf("%s = %d", name, q.Count())
+			log.Printf("%s = %d", name, w.Count())
 		}
 	}
 	if ex.Debug {
@@ -76,19 +79,20 @@ func (ex *Exporter) Run() error {
 	}
 	log.Printf("time = %v", time.Since(t0))
 
-	return nil
+	return errors.Join(errs...)
 }
 
-func (ex *Exporter) exportEntry(channel string, ns *store.Nameserver) (err error) {
-	q, found := ex.queue[channel]
+// write writes the nameserver into the files of the given name.
+func (ex *Exporter) write(writers map[string]*Writer, name string, ns *store.Nameserver) error {
+	w, found := writers[name]
 	if !found {
-		q, err = NewWriter(ex.Destination, channel)
+		var err error
+		w, err = NewWriter(ex.Destination, name)
 		if err != nil {
-			return
+			return err
 		}
-		ex.queue[channel] = q
+		writers[name] = w
 	}
 
-	q.Channel <- ns
-	return nil
+	return w.Write(ns)
 }

@@ -15,6 +15,7 @@ type nsSerializer interface {
 type insExporter interface {
 	write(*store.Nameserver) error
 	close() error
+	abort()
 }
 
 type nsExporter struct {
@@ -116,4 +117,10 @@ func (e *nsExporter) close() error {
 		return err
 	}
 	return nil
+}
+
+// abort closes and removes the temporary file, the target file stays as it is.
+func (e *nsExporter) abort() {
+	e.fileHandle.Close()
+	os.Remove(e.tmpName())
 }

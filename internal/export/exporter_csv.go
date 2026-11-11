@@ -44,7 +44,7 @@ func (e *csvExporter) write(ns *store.Nameserver) error {
 
 	e.writer.Write(fields)
 	e.writer.Flush()
-	return nil
+	return e.writer.Error()
 }
 
 func (e *csvExporter) convertNS(_ *store.Nameserver) ([]byte, error) {

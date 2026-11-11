@@ -2,18 +2,16 @@ package export
 
 import (
 	"path"
-	"sync"
 
 	"github.com/corny/dnscheck/internal/store"
 )
 
-// A Writer waites for new Nameserver instances to process and write away.
+// A Writer writes nameservers into one file per format, namely
+// <pathname>/<basename>.{txt,csv,json}. The files are written to temporary
+// files first and renamed on Close.
 type Writer struct {
-	Channel chan *store.Nameserver
-
-	exporter []insExporter
-	wg       sync.WaitGroup
-	count    uint // number of records written
+	exporters []insExporter
+	count     uint // number of records written
 }
 
 var knownExporters = []func(string) (insExporter, error){
@@ -22,57 +20,56 @@ var knownExporters = []func(string) (insExporter, error){
 	newJSONExporter,
 }
 
-// NewWriter starts a new Writer life cycle. It returns a channel to which
-// you send Nameserver instances. These are then transformed into different
-// files (namely `${pathname}/${basename}.{txt,csv,json}`), so you need
-// to pass in a path- and base name. When you're done, just close the
-// done-channel and the internal caches are flushed and the files are
-// closed.
+// NewWriter creates the temporary files for all formats.
 func NewWriter(pathname, basename string) (*Writer, error) {
-	w := &Writer{
-		Channel:  make(chan *store.Nameserver, 100),
-		exporter: make([]insExporter, len(knownExporters)),
-	}
-
+	w := &Writer{}
 	tpl := path.Join(pathname, basename)
-	for i, exFunc := range knownExporters {
-		if ex, err := exFunc(tpl); err == nil {
-			w.exporter[i] = ex
+
+	for _, newExporter := range knownExporters {
+		e, err := newExporter(tpl)
+		if err != nil {
+			w.Abort()
+			return nil, err
 		}
+		w.exporters = append(w.exporters, e)
 	}
 
-	w.wg.Add(1)
-	go w.run()
 	return w, nil
 }
 
-// Close finishes the current Write life cycle.
-func (w *Writer) Close() error {
-	close(w.Channel)
-	w.wg.Wait()
+// Write writes a nameserver into all files.
+func (w *Writer) Write(ns *store.Nameserver) error {
+	for _, e := range w.exporters {
+		if err := e.write(ns); err != nil {
+			return err
+		}
+	}
+	w.count++
 	return nil
+}
+
+// Close finishes all files and moves them to their target names. On error,
+// the remaining temporary files are removed.
+func (w *Writer) Close() error {
+	for i, e := range w.exporters {
+		if err := e.close(); err != nil {
+			for _, rest := range w.exporters[i:] {
+				rest.abort()
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+// Abort closes and removes all temporary files.
+func (w *Writer) Abort() {
+	for _, e := range w.exporters {
+		e.abort()
+	}
 }
 
 // Count returns the number of records written
 func (w *Writer) Count() uint {
 	return w.count
-}
-
-func (w *Writer) run() {
-	for ns := range w.Channel {
-		for _, e := range w.exporter {
-			if err := e.write(ns); err != nil {
-				panic(err)
-			}
-		}
-		w.count++
-	}
-
-	for _, e := range w.exporter {
-		if err := e.close(); err != nil {
-			panic(err)
-		}
-	}
-
-	w.wg.Done()
 }
