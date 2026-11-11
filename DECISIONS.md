@@ -76,7 +76,13 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 ## D10: Revised page contents
 
 - Status: decided
-- Decision: Texts are revised, not copied 1:1. Outdated references (Ruby on Rails, Bootstrap, dead links, http links) are updated or removed, and the changelog gets an entry for the rewrite.
+- Decision:
+  - Texts are revised, not copied 1:1.
+  - The old external links (CCC guide, YouTube video, Global DNS Tester, Google DNS guide, partner sites, related sites) and the Jabber contact note are removed.
+  - The footer links to the source code on GitHub instead of "Powered by Ruby on Rails" (AGPL-3.0 requires offering the source to network users). The cocktail link is removed.
+  - The whois link uses RDAP (`https://client.rdap.org/?type=ip&object=<ip>`), which covers all regions.
+  - The testing page lists the domains actually checked.
+  - The changelog gets an entry for the rewrite.
 
 ## D11: No rate limit for submissions
 
@@ -122,3 +128,8 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 
 - Status: decided
 - Decision: `github.com/maxmind/mmdbwriter` is used in tests only, to create small GeoLite2 databases. Without it, downloading, validating and reloading the databases could not be tested, because MaxMind's databases are not part of the repository and need credentials. It is not compiled into the binary.
+
+## D19: Public metrics
+
+- Status: decided
+- Decision: `/metrics` is served on the same port as the pages and may be public.

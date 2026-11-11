@@ -20,10 +20,12 @@ Known issue on `postgres`: `purge` deletes valid instead of invalid servers. Fix
 
 ## Structure
 
-- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check` (long-running: checks, export and purge on intervals, GeoLite2 updates), `export` and `purge` (one-off runs). `http.go` serves `POST /api/nameservers` (CORS for the Rails origin) and metrics, `prometheus.go` exposes the metrics.
+- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check` (long-running: checks, export and purge on intervals, GeoLite2 updates), `export` and `purge` (one-off runs). `http.go` starts the HTTP server with the web pages and `/metrics`, `prometheus.go` provides the metrics.
 - `internal/check/`: DNS checks. Each server is compared with a reference nameserver (default `8.8.8.8`) for the domains in `domains.txt`, plus NXDOMAIN, DNSSEC (AD bit), PTR and `version.bind`.
 - `internal/checkrun/`: check loop: reads all nameservers from the store in an interval, feeds them to the checker and writes the results back.
 - `internal/store/`: all SQL lives here (schema, nameserver lookups, check results, export iteration, purge). No SQL outside this package. `schema.sql` is applied on every start (D6), including the trigger `insert_nameserver_check`, which fills `nameserver_checks` and computes `reliability`.
+- `internal/web/`: public pages (`templates/`, Pico CSS and `app.js` in `static/`), translations (`locales/`, D7), language by host name (D17), export downloads and `POST /api/nameservers`.
+- `internal/testdb/`: isolated PostgreSQL schemas for database tests.
 - `internal/export/`: writes `nameservers`, `nameservers-all` and one `<cc>` per country as `.txt`, `.csv`, `.json`, atomically (temporary file plus rename).
 - `internal/geoip/`: GeoLite2 wrapper that reloads on file changes, and the downloader for MaxMind (D16).
 - `internal/bogon/`: rejects private and reserved address ranges.

@@ -43,7 +43,8 @@ Build the binary:
 
     go build ./cmd/dnscheck
 
-The `check` command runs continuously: it checks all nameservers, exports them every 4 hours and purges old data once a day.
+The `check` command runs continuously: it serves the web pages of public-dns.info and ungefiltert-surfen.de, checks all nameservers, exports them every 4 hours and purges old data once a day.
+The language of the pages depends on the host name; on other hosts, `?lang=de` selects German.
 If `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` are set, it downloads the GeoLite2 databases into `--geoip.dir` and updates them daily; otherwise it uses the files `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` found there.
 
 `dnscheck -h` prints a list of all supported arguments. Example:
