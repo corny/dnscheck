@@ -107,7 +107,7 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 ## D15: Purge
 
 - Status: decided
-- Decision: `purge` runs as an internal interval in the long-running process (D3). It stays disabled until its bug is fixed: it currently deletes servers with `status = TRUE` instead of invalid ones.
+- Decision: `purge` runs as an internal interval in the long-running process (D3). It deletes check results older than 30 days and invalid nameservers that were checked within the last 7 days and have not changed their status for 30 days.
 - Open: interval.
 
 ## D16: GeoLite2 download inside the container

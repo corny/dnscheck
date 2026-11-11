@@ -16,7 +16,7 @@ All work happens on `main` (DECISIONS.md D2). Commit messages follow Conventiona
 - `postgres`: the state currently running in production (PostgreSQL, endpoint `POST /api/nameservers`, called by the submission form of the Rails site).
 - `master`: outdated MySQL state, not used and left untouched.
 
-Known issue on `postgres`: `purge` deletes servers with `status = TRUE` instead of invalid ones. `purge` has not been run in production for years and must not be run before the fix (DECISIONS.md D2, D15).
+Known issue on `postgres`: `purge` deletes valid instead of invalid servers. Fixed on `main`; `purge` has not been run in production for years and is not scheduled yet (DECISIONS.md D15).
 
 ## Structure
 
