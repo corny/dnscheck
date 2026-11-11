@@ -2,37 +2,27 @@ package store
 
 import (
 	"net"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/corny/dnscheck/internal/testdb"
 )
 
-// openEmptyStore opens the database given by TEST_DSN and drops all tables.
-// All data in that database is lost.
+// openEmptyStore opens an empty schema of the test database (see testdb).
 func openEmptyStore(t *testing.T) *Store {
 	t.Helper()
 
-	dsn := os.Getenv("TEST_DSN")
-	if dsn == "" {
-		t.Skip("TEST_DSN not set")
-	}
-
-	s, err := Open(dsn)
+	s, err := Open(testdb.DSN(t))
 	require.NoError(t, err)
 	t.Cleanup(func() { s.Close() })
-
-	_, err = s.db.Exec(`
-		DROP TABLE IF EXISTS nameserver_checks, nameservers CASCADE;
-		DROP FUNCTION IF EXISTS insert_nameserver_check() CASCADE;`)
-	require.NoError(t, err)
 
 	return s
 }
 
-// openTestStore opens an empty database given by TEST_DSN and creates the
-// schema.
+// openTestStore opens an empty schema of the test database and creates the
+// tables.
 func openTestStore(t *testing.T) *Store {
 	t.Helper()
 
