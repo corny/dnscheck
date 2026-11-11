@@ -70,7 +70,7 @@ func (fakeStore) SaveResult(*check.Job) error { return nil }
 
 func TestStopWhileEnqueueing(t *testing.T) {
 	checker := newFakeChecker()
-	runner := New(checker, fakeStore{}, time.Hour, false)
+	runner := New(checker, fakeStore{}, time.Hour)
 
 	runDone := make(chan error, 1)
 	go func() { runDone <- runner.Run() }()

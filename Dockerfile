@@ -23,7 +23,6 @@ EXPOSE 8000
 
 ENTRYPOINT ["/dnscheck"]
 CMD ["check", \
-     "--syslog", \
      "--domains=/etc/dnscheck/domains.txt", \
      "--export.output=/data/export", \
      "--geoip.dir=/data/geoip"]

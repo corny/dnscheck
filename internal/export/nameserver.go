@@ -1,7 +1,6 @@
 package export
 
 import (
-	"log"
 	"strconv"
 	"time"
 
@@ -55,7 +54,7 @@ func fieldString(ns *store.Nameserver, attr string) string {
 	case "created_at":
 		res = ns.CreatedAt.Format(time.RFC3339)
 	default:
-		log.Panicln("invalid attribute:", attr)
+		panic("invalid attribute: " + attr)
 	}
 	return res
 }

@@ -9,7 +9,7 @@ import (
 	"errors"
 	"html/template"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"path/filepath"
@@ -175,7 +175,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, p *
 
 	var buf bytes.Buffer
 	if err := s.pages[l.lang][name].ExecuteTemplate(&buf, "layout", p); err != nil {
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -183,8 +183,8 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request, name string, p *
 	w.Write(buf.Bytes())
 }
 
-func (s *Server) serverError(w http.ResponseWriter, err error) {
-	log.Println(err)
+func (s *Server) serverError(w http.ResponseWriter, r *http.Request, err error) {
+	slog.Error("request failed", "path", r.URL.Path, "error", err)
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
 
@@ -193,17 +193,17 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 
 	count, err := s.Store.CountValid()
 	if err != nil {
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 		return
 	}
 	codes, err := s.Store.ValidCountries()
 	if err != nil {
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 		return
 	}
 	recent, err := s.Store.RecentValid(recentLimit)
 	if err != nil {
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func (s *Server) country(w http.ResponseWriter, r *http.Request) {
 
 	list, total, err := s.Store.CountryValid(code, countryLimit)
 	if err != nil {
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 		return
 	}
 
@@ -320,7 +320,7 @@ func (s *Server) submit(w http.ResponseWriter, r *http.Request) {
 	case errors.As(err, &failed):
 		http.Error(w, failed.Error(), http.StatusUnprocessableEntity)
 	case err != nil:
-		s.serverError(w, err)
+		s.serverError(w, r, err)
 	default:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		json.NewEncoder(w).Encode(&job)

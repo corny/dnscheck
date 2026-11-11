@@ -2,7 +2,7 @@ package geoip
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/netip"
 	"os"
@@ -115,7 +115,7 @@ func (db *Database) watcher() {
 		select {
 		case <-ticker.C:
 			if err := db.check(); err != nil {
-				log.Println("GeoIP database reload failed:", err)
+				slog.Error("GeoIP database reload failed", "path", db.path, "error", err)
 			}
 		case <-db.shutdown:
 			db.mtx.Lock()
@@ -133,7 +133,7 @@ func (db *Database) check() error {
 		return err
 	}
 	if info.ModTime() != db.modTime {
-		log.Println("GeoIP database reloading")
+		slog.Info("reloading GeoIP database", "path", db.path)
 		return db.open()
 	}
 	return nil

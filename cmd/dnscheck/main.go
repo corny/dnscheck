@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,7 +23,6 @@ import (
 var (
 	app      = kingpin.New("dnscheck", "A public dns checker")
 	debug    = app.Flag("debug", "Enable debug mode.").Bool()
-	syslog   = app.Flag("syslog", "Prepare logging for syslog (print to stdout, no timestamps)").Bool()
 	database = app.Flag("database", "Data source name (DSN) for the PostgreSQL database, defaults to environment variable DSN").Default(defaultDSN()).String()
 
 	checkCmd      = app.Command("check", "Run DNS checks continuously")
@@ -51,7 +50,6 @@ var (
 func runExport(destination string, batchSize uint) error {
 	exporter := export.Exporter{
 		BatchSize:   batchSize,
-		Debug:       *debug,
 		Store:       db,
 		Destination: destination,
 	}
@@ -77,30 +75,25 @@ func init() {
 func main() {
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
 
-	if *syslog {
-		log.SetOutput(os.Stdout)
-		log.SetFlags(0)
-	} else {
-		log.SetFlags(log.Lshortfile)
-	}
+	slog.SetDefault(newLogger(os.Stderr, *debug))
 
 	// Open SQL connection
 	var err error
 	db, err = store.Open(*database)
 	if err != nil {
-		log.Fatalln("cannot connect to database:", err)
+		fatal("cannot connect to database", "error", err)
 	}
 	defer db.Close()
 
 	if err := db.EnsureSchema(); err != nil {
-		log.Fatalln("cannot create database schema:", err)
+		fatal("cannot create database schema", "error", err)
 	}
 
 	// Run the command
 	switch cmd {
 	case checkCmd.FullCommand():
 		if err := checker.ReadDomains(*domains); err != nil {
-			log.Fatalln("cannot read domain list:", err)
+			fatal("cannot read domain list", "error", err)
 		}
 
 		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -135,20 +128,19 @@ func main() {
 				every(ctx, &tasks, 24*time.Hour, "GeoLite2 update", func() error { return updater.Update(ctx) })
 			}
 		} else {
-			log.Println("MAXMIND_ACCOUNT_ID or MAXMIND_LICENSE_KEY not set, using existing GeoLite2 databases in", *geoipDir)
+			slog.Info("MAXMIND_ACCOUNT_ID or MAXMIND_LICENSE_KEY not set, using existing GeoLite2 databases", "dir", *geoipDir)
 		}
 
 		if ctx.Err() == nil {
-			runner := checkrun.New(&checker, db, *checkInterval, *debug)
+			runner := checkrun.New(&checker, db, *checkInterval)
 			go func() {
-				err := runner.Run()
-				if err != nil {
-					log.Panicln(err)
+				if err := runner.Run(); err != nil {
+					fatal("checker stopped", "error", err)
 				}
 			}()
 
 			<-ctx.Done()
-			log.Println("shutting down")
+			slog.Info("shutting down")
 			runner.Stop()
 		}
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -20,7 +20,7 @@ func every(ctx context.Context, wg *sync.WaitGroup, interval time.Duration, name
 
 		for {
 			if err := fn(); err != nil {
-				log.Printf("%s failed: %v", name, err)
+				slog.Error("task failed", "task", name, "error", err)
 			}
 
 			select {

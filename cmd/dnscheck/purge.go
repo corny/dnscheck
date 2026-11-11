@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 )
 
 // runPurge deletes check results and invalid nameservers older than
@@ -23,6 +23,6 @@ func runPurge(maxAgeDays uint) error {
 		return fmt.Errorf("purging nameservers: %w", err)
 	}
 
-	log.Printf("purged %d checks and %d nameservers", checks, nameservers)
+	slog.Info("purged", "checks", checks, "nameservers", nameservers)
 	return nil
 }

@@ -3,7 +3,7 @@ package export
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +16,6 @@ import (
 // of each country.
 type Exporter struct {
 	Destination string // Destination is the output directory
-	Debug       bool
 	Store       *store.Store
 	BatchSize   uint
 }
@@ -70,14 +69,13 @@ func (ex *Exporter) Run() error {
 			errs = append(errs, fmt.Errorf("%s: %w", name, err))
 			continue
 		}
-		if ex.Debug || strings.HasPrefix(name, "nameservers") {
-			log.Printf("%s = %d", name, w.Count())
+		if strings.HasPrefix(name, "nameservers") {
+			slog.Info("exported", "file", name, "count", w.Count())
+		} else {
+			slog.Debug("exported", "file", name, "count", w.Count())
 		}
 	}
-	if ex.Debug {
-		log.Printf("total = %d", n)
-	}
-	log.Printf("time = %v", time.Since(t0))
+	slog.Info("export finished", "total", n, "duration", time.Since(t0))
 
 	return errors.Join(errs...)
 }

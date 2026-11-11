@@ -1,7 +1,7 @@
 package bogon
 
 import (
-	"log"
+	"fmt"
 	"net"
 )
 
@@ -72,7 +72,7 @@ func parseNetworks(networks ...string) []net.IPNet {
 	for i := range networks {
 		_, network, err := net.ParseCIDR(networks[i])
 		if err != nil {
-			log.Panicf("unable to parse cidr %s: %s", network, err)
+			panic(fmt.Sprintf("unable to parse cidr %s: %s", networks[i], err))
 		}
 
 		result[i] = *network
@@ -92,7 +92,6 @@ func IsBogon(ip net.IP) bool {
 func check(ip net.IP, networks []net.IPNet) bool {
 	for i := range networks {
 		if networks[i].Contains(ip) {
-			log.Println(networks[i])
 			return true
 		}
 	}

@@ -75,5 +75,6 @@ docker build -t dnscheck .
 - The language is derived from the host name: `www.ungefiltert-surfen.de` is German, `public-dns.info` is English. Both sites reference each other via `hreflang`.
 - Form input is untrusted: parse IP addresses, reject bogons.
 - No request logging, no storage of visitor or submitter IP addresses (D12, GDPR).
+- Log with `log/slog` and key-value attributes (`slog.Info("purged", "checks", n)`), not with `log`. `--debug` enables debug messages.
 - No secrets (DSN with password, MaxMind license key) in the repository.
 - New dependencies only with a rationale in DECISIONS.md.

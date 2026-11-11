@@ -3,8 +3,9 @@ package checkrun
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -33,7 +34,6 @@ type Runner struct {
 	checker  Checker
 	store    Store
 	interval time.Duration
-	debug    bool
 
 	shutdown chan struct{} // closed by Stop
 	done     chan struct{} // closed when Run returns
@@ -41,12 +41,11 @@ type Runner struct {
 }
 
 // New creates a Runner. The checker must have read its domains already.
-func New(checker Checker, store Store, interval time.Duration, debug bool) *Runner {
+func New(checker Checker, store Store, interval time.Duration) *Runner {
 	return &Runner{
 		checker:  checker,
 		store:    store,
 		interval: interval,
-		debug:    debug,
 		shutdown: make(chan struct{}),
 		done:     make(chan struct{}),
 	}
@@ -91,7 +90,7 @@ func (r *Runner) Stop() {
 }
 
 func (r *Runner) createJobs() {
-	log.Println("create jobs")
+	slog.Info("creating jobs")
 
 	err := r.store.EachAddress(batchSize, func(id int, address net.IP) bool {
 		select {
@@ -103,7 +102,8 @@ func (r *Runner) createJobs() {
 		}
 	})
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("reading nameservers failed", "error", err)
+		os.Exit(1)
 	}
 }
 
@@ -111,12 +111,10 @@ func (r *Runner) writeResults() {
 	defer r.finished.Done()
 
 	for job := range r.checker.Results() {
-		if r.debug {
-			log.Println(job)
-		}
+		slog.Debug("checked", "address", job.Address, "status", job.Status, "error", job.Error)
 
 		if err := r.store.SaveResult(job); err != nil {
-			log.Println(err)
+			slog.Error("saving check result failed", "address", job.Address, "error", err)
 		}
 	}
 }

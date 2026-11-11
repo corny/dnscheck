@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/corny/dnscheck/internal/geoip"
@@ -18,11 +18,11 @@ func waitForGeoIP(ctx context.Context, u *geoip.Updater) error {
 			return nil
 		}
 		if u.Available() {
-			log.Println("GeoLite2 update failed, using existing databases:", err)
+			slog.Warn("GeoLite2 update failed, using existing databases", "error", err)
 			return nil
 		}
 
-		log.Println("GeoLite2 download failed, retrying in a minute:", err)
+		slog.Error("GeoLite2 download failed, retrying in a minute", "error", err)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()

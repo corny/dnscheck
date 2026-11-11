@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -15,7 +15,7 @@ import (
 func startHTTP(config web.Config) {
 	srv, err := web.New(config)
 	if err != nil {
-		log.Fatalln("cannot load web pages:", err)
+		fatal("cannot load web pages", "error", err)
 	}
 
 	prometheus.MustRegister(&metricsExporter{})
@@ -33,8 +33,8 @@ func startHTTP(config web.Config) {
 		IdleTimeout:       2 * time.Minute,
 	}
 
-	log.Println("listening on", *listenAddress)
+	slog.Info("listening", "address", *listenAddress)
 	go func() {
-		log.Fatal(server.ListenAndServe())
+		fatal("HTTP server stopped", "error", server.ListenAndServe())
 	}()
 }
