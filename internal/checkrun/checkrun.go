@@ -9,25 +9,41 @@ import (
 	"time"
 
 	"github.com/corny/dnscheck/internal/check"
-	"github.com/corny/dnscheck/internal/store"
 )
 
 const batchSize = 1000
 
+// Checker checks nameservers, implemented by *check.Checker.
+type Checker interface {
+	ReadDomains(path string) error
+	Start() error
+	Stop()
+	Enqueue(id int, address net.IP)
+	Results() <-chan *check.Job
+}
+
+// Store provides the nameservers and saves the results, implemented by
+// *store.Store.
+type Store interface {
+	EachAddress(batchSize int, fn func(id int, address net.IP) bool) error
+	SaveResult(job *check.Job) error
+}
+
 // Runner checks all nameservers of the store in a fixed interval.
 type Runner struct {
-	checker  *check.Checker
-	store    *store.Store
+	checker  Checker
+	store    Store
 	domains  string // path to the domain list
 	interval time.Duration
 	debug    bool
 
-	shutdown chan struct{}
+	shutdown chan struct{} // closed by Stop
+	done     chan struct{} // closed when Run returns
 	finished sync.WaitGroup
 }
 
 // New creates a Runner. domains is the path to the domain list.
-func New(checker *check.Checker, store *store.Store, domains string, interval time.Duration, debug bool) *Runner {
+func New(checker Checker, store Store, domains string, interval time.Duration, debug bool) *Runner {
 	return &Runner{
 		checker:  checker,
 		store:    store,
@@ -35,12 +51,16 @@ func New(checker *check.Checker, store *store.Store, domains string, interval ti
 		interval: interval,
 		debug:    debug,
 		shutdown: make(chan struct{}),
+		done:     make(chan struct{}),
 	}
 }
 
 // Run starts the checker and checks all nameservers every interval until
-// Stop is called.
+// Stop is called. Before returning, it stops the checker and waits until all
+// results are written.
 func (r *Runner) Run() error {
+	defer close(r.done)
+
 	if err := r.checker.ReadDomains(r.domains); err != nil {
 		return fmt.Errorf("unable to read domain list: %w", err)
 	}
@@ -51,6 +71,12 @@ func (r *Runner) Run() error {
 
 	r.finished.Add(1)
 	go r.writeResults()
+
+	// runs after the loop below has returned, so no job is enqueued anymore
+	defer func() {
+		r.checker.Stop()
+		r.finished.Wait()
+	}()
 
 	timer := time.NewTimer(r.interval)
 	for {
@@ -65,11 +91,10 @@ func (r *Runner) Run() error {
 	}
 }
 
-// Stop stops the checks and waits until all results are written.
+// Stop stops the checks and waits until Run has returned.
 func (r *Runner) Stop() {
 	close(r.shutdown)
-	r.checker.Stop()
-	r.finished.Wait()
+	<-r.done
 }
 
 func (r *Runner) createJobs() {
