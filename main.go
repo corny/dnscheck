@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	_ "github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/corny/dnscheck/check"
 	"github.com/corny/dnscheck/export"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (
@@ -69,7 +69,7 @@ func main() {
 
 	// Open SQL connection
 	var err error
-	dbConn, err = sql.Open("postgres", *database)
+	dbConn, err = sql.Open("pgx", *database)
 	if err != nil {
 		log.Fatalln("cannot connect to database:", err)
 	}

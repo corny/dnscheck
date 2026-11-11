@@ -2,18 +2,13 @@ package export
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
-
-	"github.com/erikdubbelboer/gspt"
 )
-
-const titleFmt = `"%s (master) %d records/s, current #%d"`
 
 type Exporter struct {
 	Destination string // Destination is the output directory
@@ -38,7 +33,7 @@ func (ex *Exporter) Run() error {
 	}
 
 	if _, err := os.Stat(ex.Destination); err != nil {
-		return errors.Wrapf(err, "invalid destination '%s'", ex.Destination)
+		return fmt.Errorf("invalid destination %q: %w", ex.Destination, err)
 	}
 
 	ex.queue = make(map[string]*Writer)
@@ -60,11 +55,6 @@ func (ex *Exporter) Run() error {
 			}
 		}
 		n++
-		if n%ex.BatchSize == 0 {
-			rate := perSec(n, time.Since(t0))
-			title := fmt.Sprintf(titleFmt, os.Args[0], rate, ns.ID)
-			gspt.SetProcTitle(title)
-		}
 		return nil
 	})
 
@@ -100,9 +90,4 @@ func (ex *Exporter) exportEntry(channel string, ns *Nameserver) (err error) {
 
 	q.Channel <- ns
 	return nil
-}
-
-func perSec(n uint, t time.Duration) int {
-	res := (time.Duration(n) * time.Second) / t
-	return int(res)
 }

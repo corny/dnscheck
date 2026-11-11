@@ -1,12 +1,13 @@
 package check
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/corny/dnscheck/geoip"
 	"github.com/miekg/dns"
-	"github.com/pkg/errors"
 )
 
 // Checker is a checker instance
@@ -92,7 +93,7 @@ func (checker *Checker) Stop() {
 func (checker *Checker) UpdateExectations() error {
 	res, _, err := checker.resolveDomains(checker.ReferenceServer)
 	if err != nil {
-		return errors.Wrapf(err, "error resolving domains from reference server")
+		return fmt.Errorf("error resolving domains from reference server: %w", err)
 	}
 	checker.expectedResults = res
 	return nil

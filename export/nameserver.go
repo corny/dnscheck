@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/go-sql-driver/mysql"
 )
 
 // Nameserver describes a database record.
@@ -167,7 +165,7 @@ func scanRow(row *sql.Rows) (*Nameserver, error) {
 		ccode, city       sql.NullString
 		dnssec            sql.NullBool
 		rel               sql.NullFloat64
-		chkTime, crtTime  mysql.NullTime
+		chkTime, crtTime  sql.NullTime
 	)
 
 	err := row.Scan(&id, &status, &address, &name, &asNumber, &asOrg, &ccode, &city, &ver, &errStr, &dnssec, &rel, &chkTime, &crtTime)

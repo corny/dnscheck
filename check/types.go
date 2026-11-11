@@ -3,7 +3,7 @@ package check
 import (
 	"net"
 
-	"github.com/oschwald/geoip2-golang"
+	"github.com/oschwald/geoip2-golang/v2"
 )
 
 // Job represents a nameserver check

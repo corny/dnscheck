@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/corny/dnscheck/check"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -18,11 +18,11 @@ var (
 func startChecks() error {
 	// read domain list
 	if err := checker.ReadDomains(*domains); err != nil {
-		return errors.Wrap(err, "unable to read domain list")
+		return fmt.Errorf("unable to read domain list: %w", err)
 	}
 
 	if err := checker.Start(); err != nil {
-		return errors.Wrap(err, "unable to start checker")
+		return fmt.Errorf("unable to start checker: %w", err)
 	}
 
 	// Start result writer
@@ -108,8 +108,8 @@ func insertOrUpdate(job *check.Job) (err error) {
 	args := []interface{}{job.Name, job.Status, job.Error, job.Version, job.Dnssec, nil, nil, nil, nil, nil}
 
 	if job.City != nil {
-		args[5] = job.City.Country.IsoCode
-		args[6] = job.City.City.Names["en"]
+		args[5] = job.City.Country.ISOCode
+		args[6] = job.City.City.Names.English
 	}
 
 	if job.ASN != nil {

@@ -1,13 +1,15 @@
 package geoip
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"net/netip"
 	"os"
 	"sync"
 	"time"
 
-	geoip2 "github.com/oschwald/geoip2-golang"
+	geoip2 "github.com/oschwald/geoip2-golang/v2"
 )
 
 // Database is a wrapper around the GeoIP2 database
@@ -36,18 +38,36 @@ func New(path string) (*Database, error) {
 
 // City looks up the city
 func (db *Database) City(ip net.IP) (*geoip2.City, error) {
+	addr, err := toAddr(ip)
+	if err != nil {
+		return nil, err
+	}
+
 	db.mtx.RLock()
 	defer db.mtx.RUnlock()
 
-	return db.reader.City(ip)
+	return db.reader.City(addr)
 }
 
 // ASN looks up the ASN
 func (db *Database) ASN(ip net.IP) (*geoip2.ASN, error) {
+	addr, err := toAddr(ip)
+	if err != nil {
+		return nil, err
+	}
+
 	db.mtx.RLock()
 	defer db.mtx.RUnlock()
 
-	return db.reader.ASN(ip)
+	return db.reader.ASN(addr)
+}
+
+func toAddr(ip net.IP) (netip.Addr, error) {
+	addr, ok := netip.AddrFromSlice(ip)
+	if !ok {
+		return netip.Addr{}, fmt.Errorf("invalid IP address: %v", ip)
+	}
+	return addr.Unmap(), nil
 }
 
 // open (re)opens the database
