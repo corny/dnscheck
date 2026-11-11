@@ -1,7 +1,7 @@
 DNS Check
 =========
 
-[![Build Status](https://github.com/corny/dnscheck/workflows/build/badge.svg?branch=master)](https://github.com/corny/dnscheck/actions)
+[![Build Status](https://github.com/corny/dnscheck/workflows/build/badge.svg?branch=main)](https://github.com/corny/dnscheck/actions)
 
 This code powers the DNS check of the [Public DNS list](https://public-dns.info/) service.
 It is written in [Go](https://go.dev/) and it scales very well.

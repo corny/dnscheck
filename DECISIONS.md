@@ -7,11 +7,11 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 - Status: decided
 - Decision: All features of the Rails application (`../rails`) move into this repository. The Rails application is shut down afterwards.
 
-## D2: Work on the postgres branch
+## D2: Work on main
 
 - Status: decided
-- Decision: The `postgres` branch runs in production and is the base for all work. `master` (MySQL) is not used and stays untouched.
-- Open: whether and how `postgres` becomes the default branch.
+- Decision: All work happens on `main`, which builds on the `postgres` branch running in production. `master` (MySQL) is not used and stays untouched.
+- Open: making `main` the default branch on GitHub.
 
 ## D3: Delivery as Docker container
 

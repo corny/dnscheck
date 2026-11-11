@@ -8,14 +8,13 @@ The public pages are currently served by a separate Rails application (Rails 6.0
 
 Fundamental decisions and open questions are recorded in [DECISIONS.md](DECISIONS.md). Check it before changing architecture, database, URLs or dependencies, and add new decisions there.
 
-## Current state (starting point)
+## Branches
 
-All work happens on the `postgres` branch; `master` is not used and stays untouched (DECISIONS.md D2). Commit messages follow Conventional Commits.
+All work happens on `main` (DECISIONS.md D2). Commit messages follow Conventional Commits.
 
-- `postgres` (July 2020): runs in production and is the base for all further work. PostgreSQL schema matching Rails (`ip_address`, `status` as boolean, `country_code`, `as_number`, `as_org`), DSN via flag or environment variable `DSN`, endpoint `POST /api/nameservers` with bogon check, GeoLite2 ASN lookup, check loop with interval.
-- `master`: outdated MySQL state (`ip`, `state` as string, `country_id`), configured via a Rails `database.yml` and `RAILS_ENV`. Only dependency updates since 2020; not continued.
-
-The submission form of the Rails site calls `/api/nameservers` on the Go application.
+- `main`: builds on `postgres` and contains all further work.
+- `postgres`: the state currently running in production (PostgreSQL, endpoint `POST /api/nameservers`, called by the submission form of the Rails site).
+- `master`: outdated MySQL state, not used and left untouched.
 
 Known issue on `postgres`: `purge` deletes servers with `status = TRUE` instead of invalid ones. `purge` has not been run in production for years and must not be run before the fix (DECISIONS.md D2, D15).
 
@@ -48,7 +47,7 @@ TEST_DSN="host=/tmp dbname=dnscheck_test" go test -race ./...
 
 CI starts a PostgreSQL service container for these tests. Always say so when a test is red or was skipped, never count it as a success.
 
-Local run (`postgres` branch):
+Local run:
 
 ```sh
 DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck check --domains domains.txt --geodb-city GeoLite2-City.mmdb --geodb-asn GeoLite2-ASN.mmdb
