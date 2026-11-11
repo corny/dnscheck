@@ -1,91 +1,40 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
 	"log"
-	"net"
 	"net/http"
+	"time"
 
-	"github.com/corny/dnscheck/internal/bogon"
-	"github.com/corny/dnscheck/internal/check"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/cors"
+
+	"github.com/corny/dnscheck/internal/web"
 )
 
-var errAlreadyExists = errors.New("already exists")
+// startHTTP serves the web pages, the API and the metrics.
+func startHTTP(config web.Config) {
+	srv, err := web.New(config)
+	if err != nil {
+		log.Fatalln("cannot load web pages:", err)
+	}
 
-func startHTTP() {
 	prometheus.MustRegister(&metricsExporter{})
 
-	c := cors.New(cors.Options{
-		AllowedOrigins: *allowOrigins,
-	})
+	mux := http.NewServeMux()
+	mux.Handle(*metricsPath, promhttp.Handler())
+	mux.Handle("/", srv.Handler())
 
-	http.Handle("/api/nameservers", c.Handler(submitHandler{}))
-	http.Handle(*metricsPath, promhttp.Handler())
+	server := &http.Server{
+		Addr:              *listenAddress,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      5 * time.Minute, // a submitted nameserver is checked synchronously
+		IdleTimeout:       2 * time.Minute,
+	}
 
 	log.Println("listening on", *listenAddress)
 	go func() {
-		log.Fatal(http.ListenAndServe(*listenAddress, nil))
+		log.Fatal(server.ListenAndServe())
 	}()
-	log.Println("started")
-}
-
-type submitHandler struct{}
-
-func (submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	addrStr := r.FormValue("address")
-	if addrStr == "" {
-		http.Error(w, "address parameter is missing or empty", http.StatusUnprocessableEntity)
-		return
-	}
-
-	address := net.ParseIP(addrStr)
-	if address == nil {
-		http.Error(w, "invalid IP address", http.StatusUnprocessableEntity)
-		return
-	}
-
-	if bogon.IsBogon(address) {
-		http.Error(w, "bogon IP address", http.StatusUnprocessableEntity)
-		return
-	}
-
-	job, err := addNameserver(address)
-
-	switch err {
-	case errAlreadyExists:
-		http.Error(w, err.Error(), http.StatusConflict)
-	case nil:
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		json.NewEncoder(w).Encode(&job)
-	default:
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-}
-
-func addNameserver(address net.IP) (job check.Job, err error) {
-	job.Address = address
-
-	_, found, err := db.FindID(address)
-	if err != nil {
-		return job, err
-	}
-	if found {
-		return job, errAlreadyExists
-	}
-
-	checker.ExecuteJob(&job)
-	if job.Error != "" {
-		return job, errors.New(job.Error)
-	}
-
-	return job, db.SaveResult(&job)
 }

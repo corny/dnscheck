@@ -15,7 +15,6 @@ const batchSize = 1000
 
 // Checker checks nameservers, implemented by *check.Checker.
 type Checker interface {
-	ReadDomains(path string) error
 	Start() error
 	Stop()
 	Enqueue(id int, address net.IP)
@@ -33,7 +32,6 @@ type Store interface {
 type Runner struct {
 	checker  Checker
 	store    Store
-	domains  string // path to the domain list
 	interval time.Duration
 	debug    bool
 
@@ -42,12 +40,11 @@ type Runner struct {
 	finished sync.WaitGroup
 }
 
-// New creates a Runner. domains is the path to the domain list.
-func New(checker Checker, store Store, domains string, interval time.Duration, debug bool) *Runner {
+// New creates a Runner. The checker must have read its domains already.
+func New(checker Checker, store Store, interval time.Duration, debug bool) *Runner {
 	return &Runner{
 		checker:  checker,
 		store:    store,
-		domains:  domains,
 		interval: interval,
 		debug:    debug,
 		shutdown: make(chan struct{}),
@@ -60,10 +57,6 @@ func New(checker Checker, store Store, domains string, interval time.Duration, d
 // results are written.
 func (r *Runner) Run() error {
 	defer close(r.done)
-
-	if err := r.checker.ReadDomains(r.domains); err != nil {
-		return fmt.Errorf("unable to read domain list: %w", err)
-	}
 
 	if err := r.checker.Start(); err != nil {
 		return fmt.Errorf("unable to start checker: %w", err)

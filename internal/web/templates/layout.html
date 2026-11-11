@@ -1,0 +1,45 @@
+{{define "layout" -}}
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  {{- range .Alternates}}
+  <link rel="alternate" hreflang="{{.Lang}}" href="{{.URL}}">
+  {{- end}}
+  <link rel="stylesheet" href="/static/pico.min.css">
+  <link rel="stylesheet" href="/static/site.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li><a href="/"><strong>{{t "site.title"}}</strong></a> <small>{{t "site.since"}}</small></li>
+      </ul>
+      <ul>
+        <li><a href="/#recent">{{t "nav.recent"}}</a></li>
+        <li><a href="/#countries">{{t "nav.countries"}}</a></li>
+        <li><a href="/nameservers/new">{{t "nav.add"}}</a></li>
+        <li><a href="/testing">{{t "nav.testing"}}</a></li>
+        <li><a href="/changelog">{{t "nav.changelog"}}</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    {{- template "content" .}}
+  </main>
+
+  <footer class="container">
+    <small>
+      {{t "footer.switch"}} <a href="{{.Switch.URL}}" hreflang="{{.Switch.Lang}}" lang="{{.Switch.Lang}}">{{.Switch.Name}}</a>
+      | <a href="/impressum">{{t "footer.imprint"}}</a>
+      | <a href="{{t "footer.privacy_path"}}">{{t "footer.privacy"}}</a>
+      | <a href="https://github.com/corny/dnscheck">{{t "footer.source"}}</a>
+    </small>
+  </footer>
+</body>
+</html>
+{{- end}}

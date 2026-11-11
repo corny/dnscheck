@@ -9,8 +9,8 @@ require (
 	github.com/miekg/dns v1.1.73
 	github.com/oschwald/geoip2-golang/v2 v2.5.0
 	github.com/prometheus/client_golang v1.25.0
-	github.com/rs/cors v1.11.1
 	github.com/stretchr/testify v1.12.1
+	golang.org/x/text v0.44.0
 )
 
 require (
@@ -32,6 +32,5 @@ require (
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
-	golang.org/x/text v0.44.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )

@@ -1,0 +1,48 @@
+{{/* Nameserver table, used on the start page and the country pages */}}
+{{define "table" -}}
+<div class="overflow-auto">
+  <table class="striped">
+    <thead>
+      <tr>
+        <th scope="col">{{t "col.address"}}</th>
+        <th scope="col">{{t "col.location"}}</th>
+        <th scope="col">{{t "col.asn"}}</th>
+        <th scope="col">{{t "col.version"}}</th>
+        <th scope="col">{{t "col.checked"}}</th>
+        <th scope="col">{{t "col.status"}}</th>
+        <th scope="col">{{t "col.reliability"}}</th>
+        <th scope="col">{{t "col.whois"}}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{- range .Nameservers}}
+      <tr>
+        <td>{{.Address}}{{with .Name}}<em>{{.}}</em>{{end}}</td>
+        <td>
+          {{- if not $.Country}}{{with .Country}}{{country .}}{{end}}{{with .City}}<em>{{.}}</em>{{end}}
+          {{- else}}{{with .City}}{{.}}{{end}}{{end -}}
+        </td>
+        <td>{{with .ASNumber}}{{.}}{{end}}{{with .ASOrg}}<em>{{.}}</em>{{end}}</td>
+        <td class="truncate">{{with .Version}}<span title="{{.}}">{{.}}</span>{{else}}&ndash;{{end}}</td>
+        <td>{{with .CheckedAt}}<time datetime="{{iso .}}">{{time .}}</time>{{end}}</td>
+        <td>{{if .Status}}{{t "state.valid"}}{{else}}{{.Error}}{{end}}{{if yes .DNSSEC}}<em>DNSSEC</em>{{end}}</td>
+        <td>{{percent .Reliability}}</td>
+        <td><a href="{{rdap .Address}}" rel="nofollow">Whois</a></td>
+      </tr>
+      {{- end}}
+    </tbody>
+  </table>
+</div>
+{{- end}}
+
+{{define "explanation.de" -}}
+<p>Die hier gelisteten Nameserver werden ständig auf Erreichbarkeit und korrekte Antworten <a href="/testing">getestet</a>.</p>
+{{- end}}
+
+{{define "explanation.en" -}}
+<p>All nameservers listed here are <a href="/testing">checked</a> continuously for reachability and correct answers.</p>
+{{- end}}
+
+{{define "downloads" -}}
+<a href="{{.}}.csv">CSV</a> | <a href="{{.}}.txt">Text</a> | <a href="{{.}}.json">JSON</a>
+{{- end}}

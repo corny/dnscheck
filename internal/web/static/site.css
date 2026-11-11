@@ -1,0 +1,26 @@
+/* additions to Pico CSS */
+
+table em {
+  display: block;
+  color: var(--pico-muted-color);
+  font-size: 0.8em;
+  font-style: normal;
+}
+
+td.truncate span {
+  display: inline-block;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+ul.countries {
+  columns: 14rem;
+  padding-left: 0;
+}
+
+ul.countries li {
+  list-style: none;
+}

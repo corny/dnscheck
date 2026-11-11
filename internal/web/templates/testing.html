@@ -1,0 +1,62 @@
+{{define "content" -}}
+<h1>{{.Title}}</h1>
+{{if eq lang "de" -}}
+<p>
+  Alle gelisteten Nameserver werden regelmäßig auf Erreichbarkeit und korrekte Antworten getestet.
+  Ein Nameserver ist gültig, wenn er
+</p>
+<ul>
+  <li>innerhalb von {{.Timeout.Seconds}} Sekunden antwortet und</li>
+  <li>für die folgenden Domains dieselben Antworten liefert wie der Referenz-Nameserver <code>{{.Reference}}</code>. Domains, die nicht existieren, muss er mit NXDOMAIN beantworten.</li>
+</ul>
+<ul>
+  {{- range .Domains}}
+  <li><code>{{.}}</code></li>
+  {{- end}}
+</ul>
+<p>
+  Setzt ein Nameserver in seinen Antworten das AD-Bit, prüft er DNSSEC-Signaturen.
+  Die Liste zeigt das als <em>DNSSEC</em> an.
+</p>
+
+<h2>Zuverlässigkeit</h2>
+<p>
+  Die Zuverlässigkeit ist der Anteil der bestandenen Tests an allen Tests der letzten {{.PurgeDays}} Tage.
+  Ältere Tests werden täglich gelöscht, ebenso Nameserver, die seit {{.PurgeDays}} Tagen ungültig sind.
+  Mögliche Gründe für eine geringere Zuverlässigkeit sind:
+</p>
+<ul>
+  <li>Netzwerk- oder Verbindungsprobleme</li>
+  <li>Die IP-Adresse einer geprüften Domain hat sich geändert, und der Nameserver liefert bis zum Ablauf der TTL noch die alte Adresse.</li>
+</ul>
+{{- else -}}
+<p>
+  All listed nameservers are checked regularly for reachability and correct answers.
+  A nameserver is valid if it
+</p>
+<ul>
+  <li>responds within {{.Timeout.Seconds}} seconds and</li>
+  <li>returns the same answers as the reference nameserver <code>{{.Reference}}</code> for the following domains. It must answer NXDOMAIN for domains that do not exist.</li>
+</ul>
+<ul>
+  {{- range .Domains}}
+  <li><code>{{.}}</code></li>
+  {{- end}}
+</ul>
+<p>
+  If a nameserver sets the AD bit in its answers, it validates DNSSEC signatures.
+  The list shows this as <em>DNSSEC</em>.
+</p>
+
+<h2>Reliability</h2>
+<p>
+  The reliability is the share of passed checks among all checks of the last {{.PurgeDays}} days.
+  Older checks are deleted daily, as are nameservers that have been invalid for {{.PurgeDays}} days.
+  Possible causes for a lower reliability are:
+</p>
+<ul>
+  <li>Network or connectivity problems</li>
+  <li>The IP address of a checked domain has changed, and the nameserver still returns the old address until the TTL expires.</li>
+</ul>
+{{- end}}
+{{- end}}

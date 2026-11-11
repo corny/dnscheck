@@ -1,0 +1,117 @@
+{{define "content" -}}
+<h1>{{.Title}}</h1>
+
+<h2>2026-11</h2>
+<ul>
+  <li>Rewrite of the web interface in Go. The pages are now served by the <a href="https://github.com/corny/dnscheck">DNS checker</a> itself.</li>
+  <li>Exports are created inside the checker every 4 hours, old checks and invalid nameservers are purged daily.</li>
+  <li>Updated list of checked domains, see <a href="/testing">testing</a>.</li>
+</ul>
+
+<h2>2020-07-14</h2>
+<ul>
+  <li>Rewrite of the Web UI with Ruby On Rails 6 and Bootstrap 4.</li>
+  <li>Rewrite of the submission form. New servers are checked on adding.</li>
+  <li>Migrate from MariaDB to PostgreSQL.</li>
+</ul>
+
+<h2>2017-03-01</h2>
+<ul>
+  <li>Improved CSV, Plaintext and JSON export (the JSON limit has been lifted).</li>
+  <li>Reduced export interval down to 4 hours (from once per day).</li>
+</ul>
+
+<h2>2016-01-15</h2>
+<ul>
+  <li>public-dns.tk expired and a domain grabber registered it again to do affiliate marketing for smartdnsproxy.com. Now I use public-dns.info for the English version.</li>
+</ul>
+
+<h2>2015-09-10</h2>
+<ul>
+  <li>Add check to test DNSSEC support.</li>
+</ul>
+
+<h2>2015-02-24</h2>
+<ul>
+  <li>Collect statistical data about number of valid/invalid nameservers and valid/invalid checks per hour.</li>
+</ul>
+
+<h2>2015-01-25</h2>
+<ul>
+  <li>Add a reliability factor that shows how often a server passed the check during the last 30 days.</li>
+</ul>
+
+<h2>2015-01-16</h2>
+<ul>
+  <li>Add an additional download for all nameservers (including unchecked/invalid).</li>
+</ul>
+
+<h2>2015-01-11</h2>
+<ul>
+  <li>Limited the displayed nameservers to the 100 most recently checked per country.</li>
+  <li>Rewrite of the DNS checker in Go. The <a href="https://github.com/corny/dnscheck">source code</a> is available at GitHub.</li>
+  <li>Periodically generate CSV and Plaintext exports and limit JSON export to 100 entries. This is necessary to handle the current amount of &gt; 200k valid nameservers.</li>
+</ul>
+
+<h2>2015-01-10</h2>
+<ul>
+  <li>During the past two weeks someone submitted around 400k addresses to our site.</li>
+  <li>XML exports removed because they require too many resources.</li>
+</ul>
+
+<h2>2014-09-15</h2>
+<ul>
+  <li>XML, JSON and CSV exports are cached on the first request for some hours.</li>
+</ul>
+
+<h2>2014-03-22</h2>
+<ul>
+  <li>Link local IPv6 addresses excluded.</li>
+</ul>
+
+<h2>2013-12-06</h2>
+<ul>
+  <li>Migrated from net-dns to resolv for DNS checking.</li>
+</ul>
+
+<h2>2013-01-06</h2>
+<ul>
+  <li>English version on public-dns.tk launched.</li>
+</ul>
+
+<h2>2013-01-04</h2>
+<ul>
+  <li>Support for IPv6 added.</li>
+</ul>
+
+<h2>2012-04-03</h2>
+<ul>
+  <li>Retrieval and display of the bind.version implemented.</li>
+</ul>
+
+<h2>2009-06-05</h2>
+<ul>
+  <li>Use multiple threads for DNS checking.</li>
+</ul>
+
+<h2>2009-05-24</h2>
+<ul>
+  <li>Differentiate the errors Timeout and Refused.</li>
+</ul>
+
+<h2>2009-05-15</h2>
+<ul>
+  <li>Subpages for countries added.</li>
+</ul>
+
+<h2>2009-05-13</h2>
+<ul>
+  <li>GeoIP added.</li>
+  <li>Exports added.</li>
+</ul>
+
+<h2>2009-04-23</h2>
+<ul>
+  <li>German version on www.ungefiltert-surfen.de launched.</li>
+</ul>
+{{- end}}

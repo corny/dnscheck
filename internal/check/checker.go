@@ -3,7 +3,9 @@ package check
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/corny/dnscheck/internal/geoip"
@@ -33,6 +35,18 @@ type Checker struct {
 	pending   chan *Job
 	finished  chan *Job
 	pendingWg sync.WaitGroup
+
+	ready atomic.Bool // set when Start has succeeded
+}
+
+// Ready tells whether Start has succeeded, so jobs can be executed.
+func (checker *Checker) Ready() bool {
+	return checker.ready.Load()
+}
+
+// Domains returns the domains to be checked.
+func (checker *Checker) Domains() []string {
+	return slices.Clone(checker.domains)
 }
 
 // Start checks the options and starts the check routines
@@ -70,6 +84,7 @@ func (checker *Checker) Start() error {
 		go checker.worker()
 	}
 
+	checker.ready.Store(true)
 	return nil
 }
 

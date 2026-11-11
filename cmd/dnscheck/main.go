@@ -17,6 +17,7 @@ import (
 	"github.com/corny/dnscheck/internal/export"
 	"github.com/corny/dnscheck/internal/geoip"
 	"github.com/corny/dnscheck/internal/store"
+	"github.com/corny/dnscheck/internal/web"
 )
 
 var (
@@ -28,7 +29,6 @@ var (
 	checkCmd      = app.Command("check", "Run DNS checks continuously")
 	listenAddress = checkCmd.Flag("web.listen-address", "Listening address for the web interface").Default(":8000").String()
 	metricsPath   = checkCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
-	allowOrigins  = checkCmd.Flag("web.allow-origin", "Allowed origins for CORS").Default("http://localhost:3000").Strings()
 	domains       = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
 	checkInterval = checkCmd.Flag("interval", "Check interval").Default("1h").Duration()
 	exportOutput  = checkCmd.Flag("export.output", "Path to the export directory").Default(".").String()
@@ -99,10 +99,22 @@ func main() {
 	// Run the command
 	switch cmd {
 	case checkCmd.FullCommand():
+		if err := checker.ReadDomains(*domains); err != nil {
+			log.Fatalln("cannot read domain list:", err)
+		}
+
 		ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 		defer stop()
 
-		startHTTP()
+		startHTTP(web.Config{
+			Store:     db,
+			Checker:   &checker,
+			ExportDir: *exportOutput,
+			Domains:   checker.Domains(),
+			Reference: checker.ReferenceServer,
+			Timeout:   checker.DNSClient.ReadTimeout,
+			PurgeDays: *purgeMaxAge,
+		})
 
 		var tasks sync.WaitGroup
 		every(ctx, &tasks, *exportEvery, "export", func() error { return runExport(*exportOutput, 1000) })
@@ -127,7 +139,7 @@ func main() {
 		}
 
 		if ctx.Err() == nil {
-			runner := checkrun.New(&checker, db, *domains, *checkInterval, *debug)
+			runner := checkrun.New(&checker, db, *checkInterval, *debug)
 			go func() {
 				err := runner.Run()
 				if err != nil {

@@ -1,0 +1,25 @@
+{{define "content" -}}
+<h1>{{.Title}}</h1>
+<p>{{t "new.intro"}}</p>
+<noscript><p><strong>{{t "new.noscript"}}</strong></p></noscript>
+<form id="submit" action="/api/nameservers" method="post"
+  data-empty="{{t "new.empty"}}"
+  data-pending="{{t "new.pending"}}"
+  data-checking="{{t "new.checking"}}"
+  data-added="{{t "new.added"}}"
+  data-duplicate="{{t "new.duplicate"}}"
+  data-failed="{{t "new.failed"}}">
+  <label>
+    {{t "new.label"}}
+    <textarea name="addresses" rows="6" required></textarea>
+  </label>
+  <button type="submit">{{t "new.submit"}}</button>
+</form>
+<section id="results" hidden>
+  <label>
+    {{t "new.progress"}}
+    <progress value="0" max="1"></progress>
+  </label>
+  <ol aria-live="polite"></ol>
+</section>
+{{- end}}

@@ -1,0 +1,8 @@
+{{define "content" -}}
+<h1>{{.Title}}</h1>
+<p>{{t "country.download" (number .Count)}} {{template "downloads" (print "/nameserver/" .Country)}}</p>
+{{if eq lang "de"}}{{template "explanation.de" .}}{{else}}{{template "explanation.en" .}}{{end}}
+{{template "table" .}}
+{{if gt .Count (len .Nameservers)}}<p>{{t "country.limited" (len .Nameservers)}}</p>{{end}}
+<p><a href="/nameservers/new">{{t "nav.add"}}</a></p>
+{{- end}}

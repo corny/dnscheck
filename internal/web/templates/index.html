@@ -1,0 +1,32 @@
+{{define "content" -}}
+{{if eq lang "de" -}}
+<h1>Ungefiltert surfen mit freien Nameservern</h1>
+<p>
+  <strong>Freie Nameserver</strong> für ein <strong>unzensiertes Internet</strong>:
+  Diese Datenbank sammelt die IPv4- und IPv6-Adressen öffentlich erreichbarer Nameserver.
+  Aktuell sind <strong>{{number .Count}}</strong> Nameserver aus <strong>{{number (len .Countries)}}</strong> Ländern erfasst.
+</p>
+{{- else -}}
+<h1>Public DNS Server List</h1>
+<p>
+  This database contains public DNS servers that are reachable by IPv4 or IPv6.
+  Currently there are <strong>{{number .Count}}</strong> nameservers from <strong>{{number (len .Countries)}}</strong> countries in the database.
+</p>
+{{- end}}
+
+<h2 id="recent">{{t "index.recent"}}</h2>
+{{if eq lang "de"}}{{template "explanation.de" .}}{{else}}{{template "explanation.en" .}}{{end}}
+{{template "table" .}}
+<p><a href="/nameservers/new">{{t "nav.add"}}</a></p>
+
+<h2 id="countries">{{t "index.countries"}}</h2>
+<p>
+  {{t "index.download_valid"}} {{template "downloads" "/nameservers"}}<br>
+  {{t "index.download_all"}} {{template "downloads" "/nameservers-all"}}
+</p>
+<ul class="countries">
+  {{- range .Countries}}
+  <li><a href="{{.URL}}">{{.Name}}</a></li>
+  {{- end}}
+</ul>
+{{- end}}

@@ -32,8 +32,7 @@ func newFakeChecker() *fakeChecker {
 	}
 }
 
-func (*fakeChecker) ReadDomains(string) error { return nil }
-func (*fakeChecker) Start() error             { return nil }
+func (*fakeChecker) Start() error { return nil }
 
 func (f *fakeChecker) Stop() {
 	f.mu.Lock()
@@ -71,7 +70,7 @@ func (fakeStore) SaveResult(*check.Job) error { return nil }
 
 func TestStopWhileEnqueueing(t *testing.T) {
 	checker := newFakeChecker()
-	runner := New(checker, fakeStore{}, "", time.Hour, false)
+	runner := New(checker, fakeStore{}, time.Hour, false)
 
 	runDone := make(chan error, 1)
 	go func() { runDone <- runner.Run() }()
