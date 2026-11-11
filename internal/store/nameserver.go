@@ -29,7 +29,10 @@ func (ns *Nameserver) IsValid() bool {
 	return ns.Status
 }
 
-const queryNameserverBatch = `SELECT "id", "status", "ip_address", "name", "as_number", "as_org", "country_code", "city", "version", "error", "dnssec", "reliability", "checked_at", "created_at" FROM nameservers WHERE "id" > $1 ORDER BY "id" ASC LIMIT $2`
+// nameserverColumns are the columns read by scanNameserver.
+const nameserverColumns = `"id", "status", "ip_address", "name", "as_number", "as_org", "country_code", "city", "version", "error", "dnssec", "reliability", "checked_at", "created_at"`
+
+const queryNameserverBatch = `SELECT ` + nameserverColumns + ` FROM nameservers WHERE "id" > $1 ORDER BY "id" ASC LIMIT $2`
 
 // EachNameserver iterates over all nameservers, reading them in batches of
 // batchSize, and calls fn for each. If fn returns an error, the iteration
