@@ -1,11 +1,15 @@
 package export
 
-import "path"
-import "sync"
+import (
+	"path"
+	"sync"
+
+	"github.com/corny/dnscheck/internal/store"
+)
 
 // A Writer waites for new Nameserver instances to process and write away.
 type Writer struct {
-	Channel chan *Nameserver
+	Channel chan *store.Nameserver
 
 	exporter []insExporter
 	wg       sync.WaitGroup
@@ -26,7 +30,7 @@ var knownExporters = []func(string) (insExporter, error){
 // closed.
 func NewWriter(pathname, basename string) (*Writer, error) {
 	w := &Writer{
-		Channel:  make(chan *Nameserver, 100),
+		Channel:  make(chan *store.Nameserver, 100),
 		exporter: make([]insExporter, len(knownExporters)),
 	}
 

@@ -1,19 +1,20 @@
 package export
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/corny/dnscheck/internal/store"
 )
 
 type Exporter struct {
 	Destination string // Destination is the output directory
 	Debug       bool
-	Connection  *sql.DB
+	Store       *store.Store
 	BatchSize   uint
 	queue       map[string]*Writer
 }
@@ -28,8 +29,8 @@ func (ex *Exporter) Run() error {
 		return errors.New("batch size too small")
 	}
 
-	if ex.Connection == nil {
-		return errors.New("connection missing")
+	if ex.Store == nil {
+		return errors.New("store missing")
 	}
 
 	if _, err := os.Stat(ex.Destination); err != nil {
@@ -40,7 +41,7 @@ func (ex *Exporter) Run() error {
 	t0 := time.Now()
 	var n uint
 
-	err := Each(ex.Connection, ex.BatchSize, func(ns *Nameserver) (e error) {
+	err := ex.Store.EachNameserver(ex.BatchSize, func(ns *store.Nameserver) (e error) {
 		if e = ex.exportEntry("nameservers-all", ns); e != nil {
 			return
 		}
@@ -78,7 +79,7 @@ func (ex *Exporter) Run() error {
 	return nil
 }
 
-func (ex *Exporter) exportEntry(channel string, ns *Nameserver) (err error) {
+func (ex *Exporter) exportEntry(channel string, ns *store.Nameserver) (err error) {
 	q, found := ex.queue[channel]
 	if !found {
 		q, err = NewWriter(ex.Destination, channel)

@@ -1,5 +1,7 @@
 package export
 
+import "github.com/corny/dnscheck/internal/store"
+
 type textExporter struct {
 	*nsExporter
 }
@@ -17,6 +19,6 @@ func newTextExporter(tpl string) (insExporter, error) {
 	return e, nil
 }
 
-func (e *textExporter) convertNS(ns *Nameserver) ([]byte, error) {
+func (e *textExporter) convertNS(ns *store.Nameserver) ([]byte, error) {
 	return []byte(ns.Address), nil
 }

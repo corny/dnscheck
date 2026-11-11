@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/corny/dnscheck/check"
+	"github.com/corny/dnscheck/internal/check"
 	"github.com/prometheus/client_golang/prometheus"
 )
 

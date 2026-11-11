@@ -2,6 +2,8 @@ package export
 
 import (
 	"encoding/csv"
+
+	"github.com/corny/dnscheck/internal/store"
 )
 
 type csvExporter struct {
@@ -33,11 +35,11 @@ func newCSVExporter(tpl string) (insExporter, error) {
 
 // with code from encoding/csv (https://golang.org/src/encoding/csv/writer.go#L40)
 // but without options (Comma, UseCLRF)
-func (e *csvExporter) write(ns *Nameserver) error {
+func (e *csvExporter) write(ns *store.Nameserver) error {
 	fields := make([]string, len(nameserverFields))
 
 	for i, field := range nameserverFields {
-		fields[i] = ns.GetString(field)
+		fields[i] = fieldString(ns, field)
 	}
 
 	e.writer.Write(fields)
@@ -45,6 +47,6 @@ func (e *csvExporter) write(ns *Nameserver) error {
 	return nil
 }
 
-func (e *csvExporter) convertNS(_ *Nameserver) ([]byte, error) {
+func (e *csvExporter) convertNS(_ *store.Nameserver) ([]byte, error) {
 	panic("should not be called")
 }

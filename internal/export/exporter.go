@@ -4,14 +4,16 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"github.com/corny/dnscheck/internal/store"
 )
 
 type nsSerializer interface {
-	convertNS(*Nameserver) ([]byte, error)
+	convertNS(*store.Nameserver) ([]byte, error)
 }
 
 type insExporter interface {
-	write(*Nameserver) error
+	write(*store.Nameserver) error
 	close() error
 }
 
@@ -21,7 +23,7 @@ type nsExporter struct {
 	fileHandle *os.File
 	buf        *bufio.Writer
 
-	convert func(*Nameserver) ([]byte, error)
+	convert func(*store.Nameserver) ([]byte, error)
 
 	prefix string // data written *before* the first record
 	infix  string // data written *between* two records
@@ -69,7 +71,7 @@ func (e *nsExporter) open() error {
 	return nil
 }
 
-func (e *nsExporter) write(ns *Nameserver) (err error) {
+func (e *nsExporter) write(ns *store.Nameserver) (err error) {
 	if !e.hasPrefix {
 		e.hasPrefix = true
 		_, err = e.buf.WriteString(e.prefix)

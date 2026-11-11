@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/corny/dnscheck/geoip"
+	"github.com/corny/dnscheck/internal/geoip"
 	"github.com/miekg/dns"
 )
 

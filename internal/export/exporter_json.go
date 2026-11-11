@@ -2,6 +2,8 @@ package export
 
 import (
 	"encoding/json"
+
+	"github.com/corny/dnscheck/internal/store"
 )
 
 type jsonExporter struct {
@@ -21,6 +23,6 @@ func newJSONExporter(tpl string) (insExporter, error) {
 	return e, nil
 }
 
-func (e *jsonExporter) convertNS(ns *Nameserver) ([]byte, error) {
+func (e *jsonExporter) convertNS(ns *store.Nameserver) ([]byte, error) {
 	return json.Marshal(ns)
 }

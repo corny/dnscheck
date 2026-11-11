@@ -1,15 +1,14 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
 	"net"
 	"net/http"
 
-	"github.com/corny/dnscheck/bogon"
-	"github.com/corny/dnscheck/check"
+	"github.com/corny/dnscheck/internal/bogon"
+	"github.com/corny/dnscheck/internal/check"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -75,19 +74,18 @@ func (submitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func addNameserver(address net.IP) (job check.Job, err error) {
 	job.Address = address
 
-	row := dbConn.QueryRow("SELECT id FROM nameservers WHERE ip_address=$1", address.String())
-	err = row.Scan(&job.ID)
-
-	if err == sql.ErrNoRows {
-		checker.ExecuteJob(&job)
-		if job.Error != "" {
-			err = errors.New(job.Error)
-		} else {
-			err = insertOrUpdate(&job)
-		}
-	} else if err == nil {
-		err = errAlreadyExists
+	_, found, err := db.FindID(address)
+	if err != nil {
+		return job, err
+	}
+	if found {
+		return job, errAlreadyExists
 	}
 
-	return
+	checker.ExecuteJob(&job)
+	if job.Error != "" {
+		return job, errors.New(job.Error)
+	}
+
+	return job, db.SaveResult(&job)
 }

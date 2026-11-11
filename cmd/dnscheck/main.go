@@ -1,18 +1,17 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/corny/dnscheck/check"
-	"github.com/corny/dnscheck/export"
+	"github.com/corny/dnscheck/internal/check"
+	"github.com/corny/dnscheck/internal/checkrun"
+	"github.com/corny/dnscheck/internal/export"
+	"github.com/corny/dnscheck/internal/store"
 )
 
 var (
@@ -36,7 +35,7 @@ var (
 	purgeCmd    = app.Command("purge", "Purge database")
 	maxCheckAge = purgeCmd.Flag("max-age", "Maximum age of check results and unreachable nameservers in days").Default("30").Uint()
 
-	dbConn *sql.DB
+	db *store.Store
 )
 
 func defaultDSN() string {
@@ -69,19 +68,20 @@ func main() {
 
 	// Open SQL connection
 	var err error
-	dbConn, err = sql.Open("pgx", *database)
+	db, err = store.Open(*database)
 	if err != nil {
 		log.Fatalln("cannot connect to database:", err)
 	}
-	defer dbConn.Close()
+	defer db.Close()
 
 	// Run the command
 	switch cmd {
 	case checkCmd.FullCommand():
 		startHTTP()
 
+		runner := checkrun.New(&checker, db, *domains, *checkInterval, *debug)
 		go func() {
-			err := startChecks()
+			err := runner.Run()
 			if err != nil {
 				log.Panicln(err)
 			}
@@ -91,13 +91,13 @@ func main() {
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 		log.Printf("received %v, shutting down", <-sigs)
 
-		stopChecks()
+		runner.Stop()
 
 	case exportCmd.FullCommand():
 		exporter := export.Exporter{
 			BatchSize:   *batchSize,
 			Debug:       *debug,
-			Connection:  dbConn,
+			Store:       db,
 			Destination: *outputPath,
 		}
 		err = exporter.Run()
