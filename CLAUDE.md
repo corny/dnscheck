@@ -24,11 +24,10 @@ Known issue on `postgres`: `purge` deletes servers with `status = TRUE` instead 
 - `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check`, `export`, `purge`. `http.go` serves `POST /api/nameservers` (CORS for the Rails origin) and metrics, `prometheus.go` exposes the metrics.
 - `internal/check/`: DNS checks. Each server is compared with a reference nameserver (default `8.8.8.8`) for the domains in `domains.txt`, plus NXDOMAIN, DNSSEC (AD bit), PTR and `version.bind`.
 - `internal/checkrun/`: check loop: reads all nameservers from the store in an interval, feeds them to the checker and writes the results back.
-- `internal/store/`: all SQL lives here (nameserver lookups, check results, export iteration, purge). No SQL outside this package.
+- `internal/store/`: all SQL lives here (schema, nameserver lookups, check results, export iteration, purge). No SQL outside this package. `schema.sql` is applied on every start (D6), including the trigger `insert_nameserver_check`, which fills `nameserver_checks` and computes `reliability`.
 - `internal/export/`: writes `nameservers`, `nameservers-all` and one `<cc>` per country as `.txt`, `.csv`, `.json`, atomically (temporary file plus rename).
 - `internal/geoip/`: GeoLite2 wrapper that reloads on file changes.
 - `internal/bogon/`: rejects private and reserved address ranges.
-- `structure.sql`: still the old MySQL schema, not valid for production. The PostgreSQL schema currently lives in the Rails migrations (`../rails/db/migrate`), including the trigger `insert_nameserver_check`, which fills `nameserver_checks` and computes `reliability`.
 
 ## Commands
 
@@ -63,7 +62,7 @@ The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the rep
 - Download URLs and `POST /api/nameservers` stay unchanged (D9). Repository and module path stay `github.com/corny/dnscheck`, license AGPL-3.0 (D4).
 - The URLs of the HTML pages stay unchanged (D9): `/`, `/nameservers`, `/nameservers/new`, `/nameserver/<cc>`, `/testing`, `/changelog`, `/impressum`, `/datenschutz`, `/data-privacy`.
 - Frontend: `html/template`, Pico CSS, plain JavaScript, no Node.js build (D5). Templates and static files are embedded via `embed`. Translations as embedded JSON plus per-language templates (D7).
-- Schema changes only as embedded SQL migration files (D6).
+- Schema changes only in `internal/store/schema.sql`, and every statement must be idempotent (D6).
 - The language is derived from the host name: `www.ungefiltert-surfen.de` is German, `public-dns.info` is English. Both sites reference each other via `hreflang`.
 - Form input is untrusted: parse IP addresses, reject bogons.
 - No request logging, no storage of visitor or submitter IP addresses (D12, GDPR).

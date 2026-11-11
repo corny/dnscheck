@@ -23,8 +23,7 @@ The format is documented at the [pgx package documentation](https://pkg.go.dev/g
 
 ### Database scheme
 
-The PostgreSQL schema is currently maintained by the migrations of the Rails application.
-[structure.sql](structure.sql) is outdated (MySQL) and will be replaced by embedded migrations.
+The schema is created automatically on start, see [internal/store/schema.sql](internal/store/schema.sql).
 
 ## Domain list
 

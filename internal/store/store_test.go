@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// openTestStore opens the database given by TEST_DSN and recreates the
-// schema. All data in that database is lost.
-func openTestStore(t *testing.T) *Store {
+// openEmptyStore opens the database given by TEST_DSN and drops all tables.
+// All data in that database is lost.
+func openEmptyStore(t *testing.T) *Store {
 	t.Helper()
 
 	dsn := os.Getenv("TEST_DSN")
@@ -23,10 +23,21 @@ func openTestStore(t *testing.T) *Store {
 	require.NoError(t, err)
 	t.Cleanup(func() { s.Close() })
 
-	schema, err := os.ReadFile("testdata/schema.sql")
+	_, err = s.db.Exec(`
+		DROP TABLE IF EXISTS nameserver_checks, nameservers CASCADE;
+		DROP FUNCTION IF EXISTS insert_nameserver_check() CASCADE;`)
 	require.NoError(t, err)
-	_, err = s.db.Exec(string(schema))
-	require.NoError(t, err)
+
+	return s
+}
+
+// openTestStore opens an empty database given by TEST_DSN and creates the
+// schema.
+func openTestStore(t *testing.T) *Store {
+	t.Helper()
+
+	s := openEmptyStore(t)
+	require.NoError(t, s.EnsureSchema())
 
 	return s
 }

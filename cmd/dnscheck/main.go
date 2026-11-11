@@ -74,6 +74,10 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := db.EnsureSchema(); err != nil {
+		log.Fatalln("cannot create database schema:", err)
+	}
+
 	// Run the command
 	switch cmd {
 	case checkCmd.FullCommand():

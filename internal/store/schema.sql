@@ -1,10 +1,8 @@
--- Schema of the Rails migrations (../rails/db/migrate), used by the tests
--- until the schema is managed by this application (DECISIONS.md D6).
+-- Database schema, applied on every start. Every statement must be
+-- idempotent so it can run on new and existing databases alike.
+-- Taken over from the migrations of the former Rails application.
 
-DROP TABLE IF EXISTS nameserver_checks, nameservers CASCADE;
-DROP FUNCTION IF EXISTS insert_nameserver_check() CASCADE;
-
-CREATE TABLE nameservers (
+CREATE TABLE IF NOT EXISTS nameservers (
   id                bigserial PRIMARY KEY,
   ip_address        inet NOT NULL,
   name              varchar(255),
@@ -22,21 +20,23 @@ CREATE TABLE nameservers (
   created_at        timestamp NOT NULL
 );
 
-CREATE UNIQUE INDEX index_nameservers_on_ip_address ON nameservers (ip_address);
-CREATE INDEX index_nameservers_on_as_number ON nameservers (as_number);
-CREATE INDEX index_nameservers_on_status ON nameservers (status);
-CREATE INDEX index_nameservers_on_checked_at ON nameservers (checked_at);
-CREATE INDEX index_nameservers_on_country_code_and_status_and_checked_at ON nameservers (country_code, status, checked_at);
+CREATE UNIQUE INDEX IF NOT EXISTS index_nameservers_on_ip_address ON nameservers (ip_address);
+CREATE INDEX IF NOT EXISTS index_nameservers_on_as_number ON nameservers (as_number);
+CREATE INDEX IF NOT EXISTS index_nameservers_on_status ON nameservers (status);
+CREATE INDEX IF NOT EXISTS index_nameservers_on_checked_at ON nameservers (checked_at);
+CREATE INDEX IF NOT EXISTS index_nameservers_on_country_code_and_status_and_checked_at ON nameservers (country_code, status, checked_at);
 
-CREATE TABLE nameserver_checks (
+CREATE TABLE IF NOT EXISTS nameserver_checks (
   nameserver_id bigint NOT NULL REFERENCES nameservers (id) ON DELETE CASCADE,
   result        boolean NOT NULL,
   error         varchar(255),
   created_at    timestamp NOT NULL
 );
 
-CREATE INDEX index_nameserver_checks_on_nameserver_id ON nameserver_checks (nameserver_id);
+CREATE INDEX IF NOT EXISTS index_nameserver_checks_on_nameserver_id ON nameserver_checks (nameserver_id);
 
+-- Every change of checked_at records a check result in nameserver_checks
+-- and recomputes the reliability. A change of status sets status_changed_at.
 CREATE OR REPLACE FUNCTION insert_nameserver_check() RETURNS trigger AS $$
   BEGIN
     IF NEW.checked_at != OLD.checked_at THEN
@@ -56,12 +56,12 @@ CREATE OR REPLACE FUNCTION insert_nameserver_check() RETURNS trigger AS $$
   END
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER insert_checks_on_update
+CREATE OR REPLACE TRIGGER insert_checks_on_update
   BEFORE UPDATE ON nameservers
   FOR EACH ROW
-  EXECUTE PROCEDURE insert_nameserver_check();
+  EXECUTE FUNCTION insert_nameserver_check();
 
-CREATE TRIGGER insert_checks_on_insert
+CREATE OR REPLACE TRIGGER insert_checks_on_insert
   AFTER INSERT ON nameservers
   FOR EACH ROW
-  EXECUTE PROCEDURE insert_nameserver_check();
+  EXECUTE FUNCTION insert_nameserver_check();

@@ -37,10 +37,14 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
   - Pico CSS as a static file in the repository.
   - No Node.js build. The submission form and relative timestamps use plain JavaScript.
 
-## D6: Schema management with embedded SQL migrations
+## D6: Schema management with an idempotent schema file
 
 - Status: decided
-- Decision: The PostgreSQL schema from the Rails migrations (tables, indexes, trigger `insert_nameserver_check`) is taken over as an SQL file. Changes are made with plain SQL migration files, embedded in the binary and applied by a minimal runner with a version table. No additional dependency. The MySQL `structure.sql` is removed.
+- Decision:
+  - The PostgreSQL schema from the Rails migrations (tables, indexes, trigger `insert_nameserver_check`) lives in `internal/store/schema.sql`, embedded in the binary and executed on every start.
+  - Every statement must be idempotent (`IF NOT EXISTS`, `CREATE OR REPLACE`, `ADD COLUMN IF NOT EXISTS`). Existing databases created by Rails are left untouched.
+  - No version table, no migration library. Production runs PostgreSQL 16 or newer, CI tests against PostgreSQL 16.
+  - If a schema change cannot be expressed idempotently, versioned migrations are reconsidered.
 
 ## D7: Translations as embedded JSON and per-language templates
 
