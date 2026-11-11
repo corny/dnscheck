@@ -51,6 +51,15 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 - Status: decided
 - Decision: The Rails locale files (de, en, including country names) are converted to JSON and embedded; lookup uses `encoding/json`, no YAML dependency. Language-specific text blocks are separate templates per language.
 
+## D17: Language selection by host name
+
+- Status: decided
+- Decision:
+  - The language is derived only from the `Host` header: `www.ungefiltert-surfen.de` is German, `public-dns.info` is English, every other host is English. `Accept-Language` is ignored, so a URL always delivers the same content.
+  - Host name variants (with or without `www`) are redirected by the web server in front of the application; the application does not handle them.
+  - The reverse proxy must pass the original `Host` header to the container.
+  - For local development, `?lang=de` or `?lang=en` selects the language, but only on hosts that are not in the mapping above (for example `localhost`). No session, no cookie.
+
 ## D8: No statistics graph
 
 - Status: decided
