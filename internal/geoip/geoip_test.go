@@ -18,7 +18,7 @@ import (
 func writeCityDB(t *testing.T, path, country, city string) {
 	t.Helper()
 
-	writeDB(t, path, "GeoLite2-City", mmdbtype.Map{
+	writeDB(t, path, EditionCity, mmdbtype.Map{
 		"country": mmdbtype.Map{"iso_code": mmdbtype.String(country)},
 		"city":    mmdbtype.Map{"names": mmdbtype.Map{"en": mmdbtype.String(city)}},
 	})

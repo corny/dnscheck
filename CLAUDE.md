@@ -16,16 +16,16 @@ All work happens on `main` (DECISIONS.md D2). Commit messages follow Conventiona
 - `postgres`: the state currently running in production (PostgreSQL, endpoint `POST /api/nameservers`, called by the submission form of the Rails site).
 - `master`: outdated MySQL state, not used and left untouched.
 
-Known issue on `postgres`: `purge` deletes valid instead of invalid servers. Fixed on `main`; `purge` has not been run in production for years and is not scheduled yet (DECISIONS.md D15).
+Known issue on `postgres`: `purge` deletes valid instead of invalid servers. Fixed on `main`, where it runs once a day (DECISIONS.md D15).
 
 ## Structure
 
-- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check`, `export`, `purge`. `http.go` serves `POST /api/nameservers` (CORS for the Rails origin) and metrics, `prometheus.go` exposes the metrics.
+- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check` (long-running: checks, export and purge on intervals, GeoLite2 updates), `export` and `purge` (one-off runs). `http.go` serves `POST /api/nameservers` (CORS for the Rails origin) and metrics, `prometheus.go` exposes the metrics.
 - `internal/check/`: DNS checks. Each server is compared with a reference nameserver (default `8.8.8.8`) for the domains in `domains.txt`, plus NXDOMAIN, DNSSEC (AD bit), PTR and `version.bind`.
 - `internal/checkrun/`: check loop: reads all nameservers from the store in an interval, feeds them to the checker and writes the results back.
 - `internal/store/`: all SQL lives here (schema, nameserver lookups, check results, export iteration, purge). No SQL outside this package. `schema.sql` is applied on every start (D6), including the trigger `insert_nameserver_check`, which fills `nameserver_checks` and computes `reliability`.
 - `internal/export/`: writes `nameservers`, `nameservers-all` and one `<cc>` per country as `.txt`, `.csv`, `.json`, atomically (temporary file plus rename).
-- `internal/geoip/`: GeoLite2 wrapper that reloads on file changes.
+- `internal/geoip/`: GeoLite2 wrapper that reloads on file changes, and the downloader for MaxMind (D16).
 - `internal/bogon/`: rejects private and reserved address ranges.
 
 ## Commands
@@ -38,7 +38,7 @@ go test ./...
 
 Some tests in `check/` query public DNS servers and need network access. `go test -short ./...` skips them; CI runs the full suite.
 
-Database tests in `internal/store` run against the PostgreSQL database given by `TEST_DSN` and are skipped if it is unset. They drop and recreate all tables, so never point `TEST_DSN` at a database with real data. Locally:
+Database tests run against the PostgreSQL database given by `TEST_DSN` and are skipped if it is unset. Each test gets its own schema (`internal/testdb`), which is dropped afterwards. Still, never point `TEST_DSN` at a database with real data. Locally:
 
 ```sh
 createdb dnscheck_test
@@ -50,10 +50,10 @@ CI starts a PostgreSQL service container for these tests. Always say so when a t
 Local run:
 
 ```sh
-DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck check --domains domains.txt --geodb-city GeoLite2-City.mmdb --geodb-asn GeoLite2-ASN.mmdb
+DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck check --domains domains.txt --geoip.dir geoip --export.output export
 ```
 
-The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository.
+The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `check` downloads them into `--geoip.dir`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there.
 
 ## Rules for this project
 

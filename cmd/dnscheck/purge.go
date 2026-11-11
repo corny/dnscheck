@@ -6,33 +6,23 @@ import (
 	"log"
 )
 
-func runPurge() error {
-	if *maxCheckAge < 1 {
+// runPurge deletes check results and invalid nameservers older than
+// maxAgeDays.
+func runPurge(maxAgeDays uint) error {
+	if maxAgeDays < 1 {
 		return errors.New("max-age can not be zero")
 	}
 
-	failed := false
-
-	// purge checks older than N days
-	affected, err := db.PurgeChecks(*maxCheckAge)
+	checks, err := db.PurgeChecks(maxAgeDays)
 	if err != nil {
-		log.Println(err)
-		failed = true
-	} else {
-		fmt.Printf("Purged %d checks\n", affected)
+		return fmt.Errorf("purging checks: %w", err)
 	}
 
-	// purge nameservers that have been invalid for N days
-	affected, err = db.PurgeNameservers(*maxCheckAge)
+	nameservers, err := db.PurgeNameservers(maxAgeDays)
 	if err != nil {
-		log.Println(err)
-		failed = true
-	} else {
-		fmt.Printf("Purged %d nameservers\n", affected)
+		return fmt.Errorf("purging nameservers: %w", err)
 	}
 
-	if failed {
-		return errors.New("purging failed")
-	}
+	log.Printf("purged %d checks and %d nameservers", checks, nameservers)
 	return nil
 }
