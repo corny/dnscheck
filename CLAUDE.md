@@ -57,6 +57,14 @@ DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck check --do
 
 The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `check` downloads them into `--geoip.dir`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there.
 
+## Docker
+
+`Dockerfile` builds a static binary and copies it into `gcr.io/distroless/static-debian13:nonroot` (no shell). The CI job `docker` builds the image for every push and pull request and pushes it to `ghcr.io/corny/dnscheck` only from `main` after the tests passed.
+
+```sh
+docker build -t dnscheck .
+```
+
 ## Rules for this project
 
 - Delivery is a Docker image with one long-running process: checker, web server, export and purge on internal intervals; TLS by a reverse proxy; GeoLite2 downloaded by the process itself with account ID and license key from secrets (D3, D16).

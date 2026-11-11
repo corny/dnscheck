@@ -50,3 +50,15 @@ If `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` are set, it downloads the GeoL
 `dnscheck -h` prints a list of all supported arguments. Example:
 
     dnscheck check --domains path/to/domains.txt --database "host=/var/run/postgresql dbname=publicdns" --geoip.dir path/to/geoip --export.output path/to/export
+
+## Docker
+
+Every push to `main` builds an image and pushes it to `ghcr.io/corny/dnscheck` with the tags `main` and `sha-<commit>`.
+The image runs `dnscheck check` as a non-root user and keeps the export files and GeoLite2 databases in the volume `/data`.
+
+    docker run -d -p 8000:8000 -v dnscheck:/data \
+      -e DSN="host=db user=nameservers password=... dbname=nameservers" \
+      -e MAXMIND_ACCOUNT_ID=... -e MAXMIND_LICENSE_KEY=... \
+      ghcr.io/corny/dnscheck:main
+
+TLS is terminated by a reverse proxy in front of the container, which must pass the original `Host` header so the pages are served in the right language.
