@@ -1,5 +1,11 @@
 /* additions to Pico CSS */
 
+/* Pico grows the font size with the viewport up to 131.25%; keep the
+   browser default instead */
+:root {
+  --pico-font-size: 100%;
+}
+
 table em {
   display: block;
   color: var(--pico-muted-color);
