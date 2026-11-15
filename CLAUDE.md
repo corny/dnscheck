@@ -52,10 +52,10 @@ CI starts a PostgreSQL service container for these tests. Always say so when a t
 Local run:
 
 ```sh
-DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck serve --domains domains.txt --geoip.dir geoip --export.output export
+DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck serve --domains domains.txt --data-dir data
 ```
 
-The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `serve` downloads them into `--geoip.dir`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there.
+The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `serve` downloads them into `<data-dir>/geoip`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there. Export files go to `<data-dir>/export`. Both directories are created if missing.
 
 ## Docker
 

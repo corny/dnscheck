@@ -120,7 +120,7 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 - Status: decided
 - Decision:
   - The container downloads the GeoLite2 City and ASN databases from MaxMind and keeps them up to date.
-  - MaxMind account ID and license key are passed as the environment variables `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`, never baked into the image or the repository. Without them, existing files in `--geoip.dir` are used (local development).
+  - MaxMind account ID and license key are passed as the environment variables `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY`, never baked into the image or the repository. Without them, existing files in `<data-dir>/geoip` are used (local development).
   - Download and extraction in Go (HTTP plus `archive/tar` and `compress/gzip`, no new dependency). Check daily, replace the file atomically; the existing reload in `geoip/` picks up the new file.
   - On start without a database, checks wait until the first download succeeds.
 

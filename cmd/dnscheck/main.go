@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
@@ -30,11 +31,10 @@ var (
 	metricsPath   = serveCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
 	domains       = serveCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
 	checkInterval = serveCmd.Flag("interval", "Check interval").Default("1h").Duration()
-	exportOutput  = serveCmd.Flag("export.output", "Path to the export directory").Default(".").String()
+	dataDir       = serveCmd.Flag("data-dir", "Data directory with the subdirectories export (export files) and geoip (GeoLite2 databases, downloaded if MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY are set)").Default("/data").String()
 	exportEvery   = serveCmd.Flag("export.interval", "Export interval").Default("4h").Duration()
 	purgeEvery    = serveCmd.Flag("purge.interval", "Purge interval").Default("24h").Duration()
 	purgeMaxAge   = serveCmd.Flag("purge.max-age", "Maximum age of check results and unreachable nameservers in days").Default("30").Uint()
-	geoipDir      = serveCmd.Flag("geoip.dir", "Directory of the GeoLite2 databases. They are downloaded if MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY are set.").Default("/var/lib/GeoIP").String()
 	checker       check.Checker
 
 	exportCmd  = app.Command("export", "Export all DNS servers")
@@ -92,6 +92,9 @@ func main() {
 	// Run the command
 	switch cmd {
 	case serveCmd.FullCommand():
+		exportDir := filepath.Join(*dataDir, "export")
+		geoipDir := filepath.Join(*dataDir, "geoip")
+
 		if err := checker.ReadDomains(*domains); err != nil {
 			fatal("cannot read domain list", "error", err)
 		}
@@ -102,7 +105,7 @@ func main() {
 		startHTTP(web.Config{
 			Store:     db,
 			Checker:   &checker,
-			ExportDir: *exportOutput,
+			ExportDir: exportDir,
 			Domains:   checker.Domains(),
 			Reference: checker.ReferenceServer,
 			Timeout:   checker.DNSClient.ReadTimeout,
@@ -110,11 +113,11 @@ func main() {
 		})
 
 		var tasks sync.WaitGroup
-		every(ctx, &tasks, *exportEvery, "export", func() error { return runExport(*exportOutput, 1000) })
+		every(ctx, &tasks, *exportEvery, "export", func() error { return runExport(exportDir, 1000) })
 		every(ctx, &tasks, *purgeEvery, "purge", func() error { return runPurge(*purgeMaxAge) })
 
 		updater := &geoip.Updater{
-			Dir:        *geoipDir,
+			Dir:        geoipDir,
 			AccountID:  os.Getenv("MAXMIND_ACCOUNT_ID"),
 			LicenseKey: os.Getenv("MAXMIND_LICENSE_KEY"),
 			MaxAge:     20 * time.Hour,
@@ -128,7 +131,7 @@ func main() {
 				every(ctx, &tasks, 24*time.Hour, "GeoLite2 update", func() error { return updater.Update(ctx) })
 			}
 		} else {
-			slog.Info("MAXMIND_ACCOUNT_ID or MAXMIND_LICENSE_KEY not set, using existing GeoLite2 databases", "dir", *geoipDir)
+			slog.Info("MAXMIND_ACCOUNT_ID or MAXMIND_LICENSE_KEY not set, using existing GeoLite2 databases", "dir", geoipDir)
 		}
 
 		if ctx.Err() == nil {
