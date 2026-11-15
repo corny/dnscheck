@@ -61,9 +61,14 @@ func (u *Updater) Available() bool {
 	return true
 }
 
-// Update downloads every edition whose file is missing or older than MaxAge.
+// Update creates Dir if it does not exist and downloads every edition whose
+// file is missing or older than MaxAge.
 // A file is only replaced by a valid database of the same edition.
 func (u *Updater) Update(ctx context.Context) error {
+	if err := os.MkdirAll(u.Dir, 0o755); err != nil {
+		return err
+	}
+
 	var errs []error
 	for _, edition := range editions {
 		if info, err := os.Stat(u.Path(edition)); err == nil && time.Since(info.ModTime()) < u.MaxAge {

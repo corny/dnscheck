@@ -122,6 +122,15 @@ func TestUpdate(t *testing.T) {
 	assert.EqualValues(t, 2, requests.Load())
 }
 
+func TestUpdateCreatesDir(t *testing.T) {
+	srv, _ := maxmind(t, validArchives(t))
+	u := newUpdater(t, srv)
+	u.Dir = filepath.Join(u.Dir, "data", "geoip")
+
+	require.NoError(t, u.Update(context.Background()))
+	assert.True(t, u.Available())
+}
+
 func TestUpdateUnauthorized(t *testing.T) {
 	srv, _ := maxmind(t, validArchives(t))
 	u := newUpdater(t, srv)

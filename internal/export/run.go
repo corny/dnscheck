@@ -20,8 +20,8 @@ type Exporter struct {
 	BatchSize   uint
 }
 
-// Run exports all nameservers. The existing files are only replaced if the
-// export succeeds.
+// Run exports all nameservers and creates the destination if it does not
+// exist. The existing files are only replaced if the export succeeds.
 func (ex *Exporter) Run() error {
 	if ex.BatchSize < 1 {
 		return errors.New("batch size too small")
@@ -31,8 +31,8 @@ func (ex *Exporter) Run() error {
 		return errors.New("store missing")
 	}
 
-	if _, err := os.Stat(ex.Destination); err != nil {
-		return fmt.Errorf("invalid destination %q: %w", ex.Destination, err)
+	if err := os.MkdirAll(ex.Destination, 0o755); err != nil {
+		return fmt.Errorf("cannot create destination: %w", err)
 	}
 
 	writers := make(map[string]*Writer)

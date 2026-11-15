@@ -104,6 +104,16 @@ func TestExportTwice(t *testing.T) {
 	assert.Equal(t, "192.0.2.1\n2001:db8::2", readFile(t, dir, "nameservers.txt"))
 }
 
+func TestExportCreatesDestination(t *testing.T) {
+	s := setupNameservers(t)
+	dir := filepath.Join(t.TempDir(), "data", "export")
+
+	exporter := Exporter{Destination: dir, Store: s, BatchSize: 100}
+	require.NoError(t, exporter.Run())
+
+	assert.Equal(t, "192.0.2.1\n2001:db8::2", readFile(t, dir, "nameservers.txt"))
+}
+
 func TestExportFailureKeepsFiles(t *testing.T) {
 	s := setupNameservers(t)
 	dir := t.TempDir()
