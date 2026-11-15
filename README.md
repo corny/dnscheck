@@ -43,18 +43,18 @@ Build the binary:
 
     go build ./cmd/dnscheck
 
-The `check` command runs continuously: it serves the web pages of public-dns.info and ungefiltert-surfen.de, checks all nameservers, exports them every 4 hours and purges old data once a day.
+The `serve` command runs continuously: it serves the web pages of public-dns.info and ungefiltert-surfen.de, checks all nameservers, exports them every 4 hours and purges old data once a day.
 The language of the pages depends on the host name; on other hosts, `?lang=de` selects German.
 If `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` are set, it downloads the GeoLite2 databases into `--geoip.dir` and updates them daily; otherwise it uses the files `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` found there.
 
 `dnscheck -h` prints a list of all supported arguments. Example:
 
-    dnscheck check --domains path/to/domains.txt --database "host=/var/run/postgresql dbname=publicdns" --geoip.dir path/to/geoip --export.output path/to/export
+    dnscheck serve --domains path/to/domains.txt --database "host=/var/run/postgresql dbname=publicdns" --geoip.dir path/to/geoip --export.output path/to/export
 
 ## Docker
 
 Every push to `main` builds an image and pushes it to `ghcr.io/corny/dnscheck` with the tags `main` and `sha-<commit>`.
-The image runs `dnscheck check` as a non-root user and keeps the export files and GeoLite2 databases in the volume `/data`.
+The image runs `dnscheck serve` as a non-root user and keeps the export files and GeoLite2 databases in the volume `/data`.
 
     docker run -d -p 8000:8000 -v dnscheck:/data \
       -e DSN="host=db user=nameservers password=... dbname=nameservers" \

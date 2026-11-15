@@ -22,7 +22,7 @@ VOLUME /data
 EXPOSE 8000
 
 ENTRYPOINT ["/dnscheck"]
-CMD ["check", \
+CMD ["serve", \
      "--domains=/etc/dnscheck/domains.txt", \
      "--export.output=/data/export", \
      "--geoip.dir=/data/geoip"]

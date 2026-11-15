@@ -18,7 +18,7 @@ Current architecture and project decisions for merging dnscheck and the Rails ap
 - Status: decided
 - Decision:
   - The application is shipped as a Docker image, built by GitHub Actions and pushed to `ghcr.io/corny/dnscheck`.
-  - One long-running process: checker, web server, `export` (every 4 hours) and `purge` run inside it on internal intervals. No cron in or around the container.
+  - One long-running process, started as `dnscheck serve`: checker, web server, `export` (every 4 hours) and `purge` run inside it on internal intervals. No cron in or around the container.
   - TLS is terminated by a reverse proxy in front of the container. The container speaks plain HTTP.
   - The container downloads and updates the GeoLite2 databases itself (D16).
   - Base image `gcr.io/distroless/static`, running as non-root user.

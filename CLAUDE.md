@@ -20,7 +20,7 @@ Known issue on `postgres`: `purge` deletes valid instead of invalid servers. Fix
 
 ## Structure
 
-- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `check` (long-running: checks, export and purge on intervals, GeoLite2 updates), `export` and `purge` (one-off runs). `http.go` starts the HTTP server with the web pages and `/metrics`, `prometheus.go` provides the metrics.
+- `cmd/dnscheck/`: the binary. `main.go` parses flags (kingpin) and wires everything together; subcommands `serve` (long-running: web server, checks, export and purge on intervals, GeoLite2 updates), `export` and `purge` (one-off runs). `http.go` starts the HTTP server with the web pages and `/metrics`, `prometheus.go` provides the metrics.
 - `internal/check/`: DNS checks. Each server is compared with a reference nameserver (default `8.8.8.8`) for the domains in `domains.txt`, plus NXDOMAIN, DNSSEC (AD bit), PTR and `version.bind`.
 - `internal/checkrun/`: check loop: reads all nameservers from the store in an interval, feeds them to the checker and writes the results back.
 - `internal/store/`: all SQL lives here (schema, nameserver lookups, check results, export iteration, purge). No SQL outside this package. `schema.sql` is applied on every start (D6), including the trigger `insert_nameserver_check`, which fills `nameserver_checks` and computes `reliability`.
@@ -52,10 +52,10 @@ CI starts a PostgreSQL service container for these tests. Always say so when a t
 Local run:
 
 ```sh
-DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck check --domains domains.txt --geoip.dir geoip --export.output export
+DSN="host=/var/run/postgresql dbname=publicdns" go run ./cmd/dnscheck serve --domains domains.txt --geoip.dir geoip --export.output export
 ```
 
-The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `check` downloads them into `--geoip.dir`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there.
+The GeoLite2 databases (City, ASN) come from MaxMind and are not part of the repository. With `MAXMIND_ACCOUNT_ID` and `MAXMIND_LICENSE_KEY` set, `serve` downloads them into `--geoip.dir`; otherwise it expects `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` there.
 
 ## Docker
 

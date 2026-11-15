@@ -25,16 +25,16 @@ var (
 	debug    = app.Flag("debug", "Enable debug mode.").Bool()
 	database = app.Flag("database", "Data source name (DSN) for the PostgreSQL database, defaults to environment variable DSN").Default(defaultDSN()).String()
 
-	checkCmd      = app.Command("check", "Run DNS checks continuously")
-	listenAddress = checkCmd.Flag("web.listen-address", "Listening address for the web interface").Default(":8000").String()
-	metricsPath   = checkCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
-	domains       = checkCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
-	checkInterval = checkCmd.Flag("interval", "Check interval").Default("1h").Duration()
-	exportOutput  = checkCmd.Flag("export.output", "Path to the export directory").Default(".").String()
-	exportEvery   = checkCmd.Flag("export.interval", "Export interval").Default("4h").Duration()
-	purgeEvery    = checkCmd.Flag("purge.interval", "Purge interval").Default("24h").Duration()
-	purgeMaxAge   = checkCmd.Flag("purge.max-age", "Maximum age of check results and unreachable nameservers in days").Default("30").Uint()
-	geoipDir      = checkCmd.Flag("geoip.dir", "Directory of the GeoLite2 databases. They are downloaded if MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY are set.").Default("/var/lib/GeoIP").String()
+	serveCmd      = app.Command("serve", "Serve the web pages and run checks, export and purge continuously")
+	listenAddress = serveCmd.Flag("web.listen-address", "Listening address for the web interface").Default(":8000").String()
+	metricsPath   = serveCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
+	domains       = serveCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
+	checkInterval = serveCmd.Flag("interval", "Check interval").Default("1h").Duration()
+	exportOutput  = serveCmd.Flag("export.output", "Path to the export directory").Default(".").String()
+	exportEvery   = serveCmd.Flag("export.interval", "Export interval").Default("4h").Duration()
+	purgeEvery    = serveCmd.Flag("purge.interval", "Purge interval").Default("24h").Duration()
+	purgeMaxAge   = serveCmd.Flag("purge.max-age", "Maximum age of check results and unreachable nameservers in days").Default("30").Uint()
+	geoipDir      = serveCmd.Flag("geoip.dir", "Directory of the GeoLite2 databases. They are downloaded if MAXMIND_ACCOUNT_ID and MAXMIND_LICENSE_KEY are set.").Default("/var/lib/GeoIP").String()
 	checker       check.Checker
 
 	exportCmd  = app.Command("export", "Export all DNS servers")
@@ -66,10 +66,10 @@ func defaultDSN() string {
 }
 
 func init() {
-	checkCmd.Flag("reference", "The nameserver that every other is compared with").Default("8.8.8.8").StringVar(&checker.ReferenceServer)
-	checkCmd.Flag("workers", "Number of worker routines").Default("32").UintVar(&checker.WorkersCount)
-	checkCmd.Flag("attempts", "Maximum number of attempts per query on timeouts").Default("3").UintVar(&checker.MaxAttempts)
-	checkCmd.Flag("timeout", "Timeout per dns query").Default("3s").DurationVar(&checker.DNSClient.ReadTimeout)
+	serveCmd.Flag("reference", "The nameserver that every other is compared with").Default("8.8.8.8").StringVar(&checker.ReferenceServer)
+	serveCmd.Flag("workers", "Number of worker routines").Default("32").UintVar(&checker.WorkersCount)
+	serveCmd.Flag("attempts", "Maximum number of attempts per query on timeouts").Default("3").UintVar(&checker.MaxAttempts)
+	serveCmd.Flag("timeout", "Timeout per dns query").Default("3s").DurationVar(&checker.DNSClient.ReadTimeout)
 }
 
 func main() {
@@ -91,7 +91,7 @@ func main() {
 
 	// Run the command
 	switch cmd {
-	case checkCmd.FullCommand():
+	case serveCmd.FullCommand():
 		if err := checker.ReadDomains(*domains); err != nil {
 			fatal("cannot read domain list", "error", err)
 		}
