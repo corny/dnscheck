@@ -27,7 +27,7 @@ var (
 	database = app.Flag("database", "Data source name (DSN) for the PostgreSQL database, defaults to environment variable DSN").Default(defaultDSN()).String()
 
 	serveCmd      = app.Command("serve", "Serve the web pages and run checks, export and purge continuously")
-	listenAddress = serveCmd.Flag("web.listen-address", "Listening address for the web interface").Default(":8000").String()
+	listenAddress = serveCmd.Flag("web.listen-address", "Listening address for the web interface").Envar("LISTEN_ADDRESS").Default(":8000").String()
 	metricsPath   = serveCmd.Flag("web.telemetry-path", "Path under which to expose metrics").Default("/metrics").String()
 	domains       = serveCmd.Flag("domains", "Path to file containing the domain list").Default("domains.txt").String()
 	checkInterval = serveCmd.Flag("interval", "Check interval").Default("1h").Duration()

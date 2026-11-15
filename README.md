@@ -63,3 +63,4 @@ The image runs `dnscheck serve` as a non-root user and keeps the export files an
       ghcr.io/corny/dnscheck:main
 
 TLS is terminated by a reverse proxy in front of the container, which must pass the original `Host` header so the pages are served in the right language.
+`LISTEN_ADDRESS` sets the listening address (default `:8000`), for example `127.0.0.1:8000` with host networking behind a local reverse proxy.
