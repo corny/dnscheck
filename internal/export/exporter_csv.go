@@ -12,11 +12,7 @@ type csvExporter struct {
 	writer *csv.Writer
 }
 
-var (
-	// type checks
-	_ insExporter  = &csvExporter{}
-	_ nsSerializer = &csvExporter{}
-)
+var _ insExporter = &csvExporter{} // type check
 
 func newCSVExporter(tpl string) (insExporter, error) {
 	e := &csvExporter{
@@ -27,14 +23,15 @@ func newCSVExporter(tpl string) (insExporter, error) {
 		return nil, err
 	}
 
-	e.writer = csv.NewWriter(e.fileHandle)
-	e.writer.Write(nameserverFields)
+	e.writer = csv.NewWriter(e.buf)
+	if err := e.writer.Write(nameserverFields); err != nil {
+		e.abort()
+		return nil, err
+	}
 
 	return e, nil
 }
 
-// with code from encoding/csv (https://golang.org/src/encoding/csv/writer.go#L40)
-// but without options (Comma, UseCLRF)
 func (e *csvExporter) write(ns *store.Nameserver) error {
 	fields := make([]string, len(nameserverFields))
 
@@ -42,11 +39,13 @@ func (e *csvExporter) write(ns *store.Nameserver) error {
 		fields[i] = fieldString(ns, field)
 	}
 
-	e.writer.Write(fields)
-	e.writer.Flush()
-	return e.writer.Error()
+	return e.writer.Write(fields)
 }
 
-func (e *csvExporter) convertNS(_ *store.Nameserver) ([]byte, error) {
-	panic("should not be called")
+func (e *csvExporter) close() error {
+	e.writer.Flush()
+	if err := e.writer.Error(); err != nil {
+		return err
+	}
+	return e.nsExporter.close()
 }

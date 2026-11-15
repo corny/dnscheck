@@ -27,8 +27,6 @@ func (checker *Checker) worker() {
 // consumes a job and writes the result in the given job
 func (checker *Checker) ExecuteJob(job *Job) {
 	// GeoDB lookup
-	var err error
-
 	if checker.geoipCity != nil {
 		job.City, _ = checker.geoipCity.City(job.Address)
 	}
@@ -49,13 +47,6 @@ func (checker *Checker) ExecuteJob(job *Job) {
 		job.Status = true
 		job.Error = ""
 		job.Dnssec = &dnssec
-
-		if dnssec {
-			Metrics.DNSSecSupported.Add(1)
-		} else {
-			Metrics.DNSSecNotSupported.Add(1)
-		}
-
 		Metrics.Valid.Add(1)
 	} else {
 		job.Status = false

@@ -3,6 +3,7 @@ package check
 import (
 	"bufio"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -19,8 +20,8 @@ func (checker *Checker) ReadDomains(path string) error {
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 
-		// skip empty lines and lines with leading hash
-		if len(line) > 0 && strings.Index(line, "#") == -1 {
+		// skip empty lines and comments
+		if line != "" && !strings.Contains(line, "#") {
 			checker.AddDomain(line)
 		}
 	}
@@ -29,13 +30,8 @@ func (checker *Checker) ReadDomains(path string) error {
 }
 
 // AddDomain adds a domain if it does not exist yet
-func (checker *Checker) AddDomain(domain string) bool {
-	for i := range checker.domains {
-		if checker.domains[i] == domain {
-			return false
-		}
+func (checker *Checker) AddDomain(domain string) {
+	if !slices.Contains(checker.domains, domain) {
+		checker.domains = append(checker.domains, domain)
 	}
-
-	checker.domains = append(checker.domains, domain)
-	return true
 }

@@ -3,49 +3,14 @@ package check
 import (
 	"fmt"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/miekg/dns"
 )
 
-var addressTypes = []uint16{dns.TypeA, dns.TypeAAAA}
-
 func (checker *Checker) exchange(m *dns.Msg, serverAddress string) (r *dns.Msg, rtt time.Duration, err error) {
 	Metrics.Queries.Add(1)
 	return checker.DNSClient.Exchange(m, serverAddress)
-}
-
-// exchange message with the reference nameserver
-func (checker *Checker) exchangeReference(m *dns.Msg) (r *dns.Msg, rtt time.Duration, err error) {
-	return checker.exchange(m, net.JoinHostPort(checker.ReferenceServer, "53"))
-}
-
-// resolves the fqdn and returns all IP addresses
-func (checker *Checker) resolveAddresses(fqdn string) (result []net.IP, err error) {
-
-	mtx := sync.Mutex{}
-	wg := sync.WaitGroup{}
-	wg.Add(len(addressTypes))
-
-	for _, qType := range addressTypes {
-		go func() {
-			resResult, _, resErr := checker.resolve(checker.ReferenceServer, fqdn, qType)
-			mtx.Lock()
-
-			if resErr != nil {
-				err = resErr
-			} else {
-				result = append(result, resResult...)
-			}
-
-			mtx.Unlock()
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
-	return
 }
 
 // Query the given nameserver for all domains (A records)
@@ -72,24 +37,17 @@ func (checker *Checker) resolve(nameserver string, domain string, qType uint16) 
 	m.AuthenticatedData = true
 
 	hostPort := net.JoinHostPort(nameserver, "53")
-	attempt := uint(1)
-	result := &dns.Msg{}
 
-	// execute the query
-	for {
+	// execute the query, retry on timeouts
+	var result *dns.Msg
+	for attempt := uint(1); ; attempt++ {
 		result, _, err = checker.exchange(m, hostPort)
 		if err == nil {
-			// success
 			break
-		} else {
-			err = simplifyError(err)
-			if err.Error() != "i/o timeout" || attempt >= checker.MaxAttempts {
-				// network problem or timeout
-				return
-			}
-			err = nil
-			// retry
-			attempt++
+		}
+		err = simplifyError(err)
+		if err.Error() != "i/o timeout" || attempt >= checker.MaxAttempts {
+			return nil, false, err
 		}
 	}
 
@@ -119,7 +77,7 @@ func (checker *Checker) resolve(nameserver string, domain string, qType uint16) 
 	return
 }
 
-// ptrName does a reverse lookup
+// ptrName does a reverse lookup with the reference nameserver
 func (checker *Checker) ptrName(address string) string {
 	reverse, err := dns.ReverseAddr(address)
 	if err != nil {

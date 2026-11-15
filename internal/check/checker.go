@@ -6,7 +6,6 @@ import (
 	"slices"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/corny/dnscheck/internal/geoip"
 	"github.com/miekg/dns"
@@ -17,7 +16,6 @@ type Checker struct {
 	WorkersCount    uint
 	ReferenceServer string
 	MaxAttempts     uint
-	Timeout         time.Duration
 	GeoDbPathCity   string
 	GeoDbPathASN    string
 
@@ -55,8 +53,8 @@ func (checker *Checker) Start() error {
 	if checker.ReferenceServer == "" {
 		return errors.New("reference nameserver missing")
 	}
-	if err := checker.UpdateExectations(); err != nil {
-		return errors.New("unable to query reference nameserver")
+	if err := checker.updateExpectations(); err != nil {
+		return err
 	}
 
 	if path := checker.GeoDbPathCity; path != "" {
@@ -104,8 +102,9 @@ func (checker *Checker) Stop() {
 	close(checker.finished)
 }
 
-// UpdateExectations checks the domain list against the references nameserver and saves the responses
-func (checker *Checker) UpdateExectations() error {
+// updateExpectations resolves the domains with the reference nameserver and
+// saves the responses
+func (checker *Checker) updateExpectations() error {
 	res, _, err := checker.resolveDomains(checker.ReferenceServer)
 	if err != nil {
 		return fmt.Errorf("error resolving domains from reference server: %w", err)

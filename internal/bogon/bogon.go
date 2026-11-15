@@ -81,12 +81,12 @@ func parseNetworks(networks ...string) []net.IPNet {
 	return result
 }
 
+// IsBogon tells whether the address is in a private or reserved range.
 func IsBogon(ip net.IP) bool {
 	if ip.To4() != nil {
 		return check(ip, ipv4networks)
-	} else {
-		return check(ip, ipv6networks)
 	}
+	return check(ip, ipv6networks)
 }
 
 func check(ip net.IP, networks []net.IPNet) bool {

@@ -2,6 +2,7 @@ package check
 
 import (
 	"net"
+	"slices"
 	"strings"
 )
 
@@ -28,12 +29,7 @@ func (set *ipSet) add(ip net.IP) {
 }
 
 func (set *ipSet) contains(ip net.IP) bool {
-	for i := range set.list {
-		if set.list[i].Equal(ip) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(set.list, ip.Equal)
 }
 
 func (set *ipSet) containsSet(other *ipSet) bool {

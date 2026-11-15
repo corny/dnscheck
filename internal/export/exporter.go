@@ -104,8 +104,8 @@ func (e *nsExporter) write(ns *store.Nameserver) (err error) {
 }
 
 func (e *nsExporter) close() error {
-	if e.suffix != "" {
-		e.buf.WriteString(e.suffix)
+	if _, err := e.buf.WriteString(e.suffix); err != nil {
+		return err
 	}
 	if err := e.buf.Flush(); err != nil {
 		return err
