@@ -23,8 +23,8 @@ func (ex *metricsExporter) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect collects metrics for Prometheus
 func (ex *metricsExporter) Collect(ch chan<- prometheus.Metric) {
-	ch <- prometheus.MustNewConstMetric(checksDesc, prometheus.CounterValue, float64(check.Metrics.Processed))
-	ch <- prometheus.MustNewConstMetric(queriesDesc, prometheus.CounterValue, float64(check.Metrics.Queries))
-	ch <- prometheus.MustNewConstMetric(resultDesc, prometheus.CounterValue, float64(check.Metrics.Valid), "valid")
-	ch <- prometheus.MustNewConstMetric(resultDesc, prometheus.CounterValue, float64(check.Metrics.Invalid), "invalid")
+	ch <- prometheus.MustNewConstMetric(checksDesc, prometheus.CounterValue, float64(check.Metrics.Processed.Load()))
+	ch <- prometheus.MustNewConstMetric(queriesDesc, prometheus.CounterValue, float64(check.Metrics.Queries.Load()))
+	ch <- prometheus.MustNewConstMetric(resultDesc, prometheus.CounterValue, float64(check.Metrics.Valid.Load()), "valid")
+	ch <- prometheus.MustNewConstMetric(resultDesc, prometheus.CounterValue, float64(check.Metrics.Invalid.Load()), "invalid")
 }

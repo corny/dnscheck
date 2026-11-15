@@ -12,7 +12,7 @@ import (
 var addressTypes = []uint16{dns.TypeA, dns.TypeAAAA}
 
 func (checker *Checker) exchange(m *dns.Msg, serverAddress string) (r *dns.Msg, rtt time.Duration, err error) {
-	incrementMetric(&Metrics.Queries)
+	Metrics.Queries.Add(1)
 	return checker.DNSClient.Exchange(m, serverAddress)
 }
 

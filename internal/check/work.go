@@ -19,7 +19,7 @@ func (checker *Checker) worker() {
 		checker.ExecuteJob(job)
 		checker.finished <- job
 
-		incrementMetric(&Metrics.Processed)
+		Metrics.Processed.Add(1)
 	}
 	checker.pendingWg.Done()
 }
@@ -51,16 +51,16 @@ func (checker *Checker) ExecuteJob(job *Job) {
 		job.Dnssec = &dnssec
 
 		if dnssec {
-			incrementMetric(&Metrics.DNSSecSupported)
+			Metrics.DNSSecSupported.Add(1)
 		} else {
-			incrementMetric(&Metrics.DNSSecNotSupported)
+			Metrics.DNSSecNotSupported.Add(1)
 		}
 
-		incrementMetric(&Metrics.Valid)
+		Metrics.Valid.Add(1)
 	} else {
 		job.Status = false
 		job.Error = err.Error()
 
-		incrementMetric(&Metrics.Invalid)
+		Metrics.Invalid.Add(1)
 	}
 }
